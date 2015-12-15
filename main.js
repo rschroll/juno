@@ -3,6 +3,8 @@ const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.
 
+app.commandLine.appendSwitch('ignore-certificate-errors')
+
 // Report crashes to our server.
 electron.crashReporter.start();
 
@@ -22,6 +24,8 @@ app.on('window-all-closed', function() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+  let host = process.argv[2];
+  
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
 
@@ -30,6 +34,10 @@ app.on('ready', function() {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+  
+  mainWindow.webContents.on('did-finish-load', function() {
+    mainWindow.webContents.send('set-host', host);
+  });
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

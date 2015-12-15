@@ -3,11 +3,30 @@
   <head>
     <meta charset="UTF-8">
     <title>Hello World!</title>
+    <script src="riot.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font: menu;
+        -webkit-user-select: none;
+      }
+    </style>
+    <link rel="stylesheet" href="typicons/typicons.min.css" />
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <file-list></file-list>
+    <notebook-tabs></notebook-tabs>
+    <script src="tags.js"></script>
+    <script>
+      var list = riot.mount("file-list")[0];
+      var tabs = riot.mount("notebook-tabs")[0];
+      riot.openNotebook = function (url) {
+        return tabs.openNotebook(url);
+      }
+      
+      require("electron").ipcRenderer.on('set-host', function (event, message) {
+        list.loadFiles("", message);
+      });
+    </script>
   </body>
 </html>
