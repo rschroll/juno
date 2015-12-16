@@ -142,7 +142,9 @@
         self.openNotebook(webview.src);
       });
       close.addEventListener("click", function (event) {
-        self.closeNotebook(nb);
+        if (!header.classList.contains("unsaved") ||
+            window.confirm("Notebook contains unsaved changes.\n\nClose anyway?"))
+          self.closeNotebook(nb);
         event.stopPropagation();
       });
 
