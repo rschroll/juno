@@ -40,10 +40,11 @@
     var SAVE_STATUS = "X-Save-Status: ";
     var CHECKPOINT = "X-Checkpoint: "
     var NEW_NOTEBOOK = "X-New-Notebook: ";
+    var KERNEL_LOGO = "X-Kernel-Logo: ";
     var CLIENT_JS = `
       (function () {
-        var old_setter = Jupyter.save_widget.set_save_status;
-        Jupyter.save_widget.set_save_status = function (msg) {
+        var old_setter = IPython.save_widget.set_save_status;
+        IPython.save_widget.set_save_status = function (msg) {
             console.log('${SAVE_STATUS}' + msg);
             return old_setter.apply(this, arguments);
         }
@@ -53,8 +54,8 @@
             console.log('${CHECKPOINT}' + text);
         }
         
-        var old_checkpoint = Jupyter.save_widget._render_checkpoint;
-        Jupyter.save_widget._render_checkpoint = function (checkpoint) {
+        var old_checkpoint = IPython.save_widget._render_checkpoint;
+        IPython.save_widget._render_checkpoint = function (checkpoint) {
             var retval = old_checkpoint.apply(this, arguments);
             report_checkpoint();
             return retval;
@@ -69,6 +70,8 @@
           console.log('${NEW_NOTEBOOK}' + name);
         }
         
+        console.log('${KERNEL_LOGO}' + document.querySelector(".current_kernel_logo").src);
+        
         document.querySelector('#toggle_header').click();
       })();
     `
@@ -80,7 +83,6 @@
       
       let header = document.createElement("li");
       let icon = document.createElement("img");
-      icon.src = "http://localhost:8888/kernelspecs/python2/logo-64x64.png";
       header.appendChild(icon);
       let title = document.createElement("span");
       header.appendChild(title);
@@ -126,6 +128,8 @@
           header.title = msg.slice(CHECKPOINT.length);
         } else if (msg.slice(0, NEW_NOTEBOOK.length) == NEW_NOTEBOOK) {
           console.log("New notebook requested", msg.slice(NEW_NOTEBOOK.length));
+        } else if (msg.slice(0, KERNEL_LOGO.length) == KERNEL_LOGO) {
+          icon.src = msg.slice(KERNEL_LOGO.length);
         }
       });
       webview.addEventListener("close", function (event) {
