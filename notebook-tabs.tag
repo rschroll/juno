@@ -41,6 +41,7 @@
     var CHECKPOINT = "X-Checkpoint: "
     var NEW_NOTEBOOK = "X-New-Notebook: ";
     var KERNEL_LOGO = "X-Kernel-Logo: ";
+    var CLOSE = "X-Close";
     var CLIENT_JS = `
       (function () {
         var old_setter = IPython.save_widget.set_save_status;
@@ -130,6 +131,8 @@
           console.log("New notebook requested", msg.slice(NEW_NOTEBOOK.length));
         } else if (msg.slice(0, KERNEL_LOGO.length) == KERNEL_LOGO) {
           icon.src = msg.slice(KERNEL_LOGO.length);
+        } else if (msg == CLOSE) {
+          self.closeNotebook(nb);
         }
       });
       webview.addEventListener("close", function (event) {
@@ -143,8 +146,14 @@
       });
       close.addEventListener("click", function (event) {
         if (!header.classList.contains("unsaved") ||
-            window.confirm("Notebook contains unsaved changes.\n\nClose anyway?"))
-          self.closeNotebook(nb);
+            window.confirm("Notebook contains unsaved changes.\n\nClose anyway?")) {
+          webview.executeJavaScript(`
+            function signalClose() {
+              console.log('${CLOSE}');
+            }
+            IPython.notebook.session.delete(signalClose, signalClose)
+          `);
+        }
         event.stopPropagation();
       });
 
