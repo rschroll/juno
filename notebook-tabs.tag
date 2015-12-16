@@ -39,8 +39,9 @@
     
     var SAVE_STATUS = "X-Save-Status: ";
     var CHECKPOINT = "X-Checkpoint: "
+    var NEW_NOTEBOOK = "X-New-Notebook: ";
     var CLIENT_JS = `
-        (function () {
+      (function () {
         var old_setter = Jupyter.save_widget.set_save_status;
         Jupyter.save_widget.set_save_status = function (msg) {
             console.log('${SAVE_STATUS}' + msg);
@@ -60,8 +61,16 @@
         }
         report_checkpoint();
         
+        // For some reason, have to override prototype here.  Also, it looks like
+        // we'll have to implement the new notebook creation, since it involves
+        // cross-window javascript.
+        var KernelSelector = require("notebook/js/kernelselector").KernelSelector;
+        KernelSelector.prototype.new_notebook = function (name) {
+          console.log('${NEW_NOTEBOOK}' + name);
+        }
+        
         document.querySelector('#toggle_header').click();
-    })();
+      })();
     `
     
     function createNotebook(url) {
@@ -115,7 +124,15 @@
             header.classList.remove("unsaved");
         } else if (msg.slice(0, CHECKPOINT.length) == CHECKPOINT) {
           header.title = msg.slice(CHECKPOINT.length);
+        } else if (msg.slice(0, NEW_NOTEBOOK.length) == NEW_NOTEBOOK) {
+          console.log("New notebook requested", msg.slice(NEW_NOTEBOOK.length));
         }
+      });
+      webview.addEventListener("close", function (event) {
+        self.closeNotebook(nb);
+      });
+      webview.addEventListener("new-window", function (event) {
+        riot.openUrl(event.url);
       });
       header.addEventListener("click", function (event) {
         self.openNotebook(webview.src);
@@ -142,7 +159,7 @@
         }
       }
       if (!found)
-        createNotebook(url)
+        createNotebook(url);
     }
     
     closeNotebook(nb) {

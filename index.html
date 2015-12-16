@@ -20,12 +20,19 @@
     <script>
       var list = riot.mount("file-list")[0];
       var tabs = riot.mount("notebook-tabs")[0];
-      riot.openNotebook = function (url) {
-        return tabs.openNotebook(url);
+      riot.host = undefined;
+      riot.openUrl = function (url) {
+        if (riot.host === undefined)
+          throw "Host hasn't been set."
+        
+        if (url.slice(0, riot.host.length) == riot.host)
+          return tabs.openNotebook(url);
+        require("electron").shell.openExternal(url);
       }
       
       require("electron").ipcRenderer.on('set-host', function (event, message) {
-        list.loadFiles("", message);
+        riot.host = message;
+        list.loadFiles("", riot.host);
       });
     </script>
   </body>

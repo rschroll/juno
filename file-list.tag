@@ -31,7 +31,7 @@
         let attr = "hide" + event.item.name;
         self[attr] = !self[attr];
       } else {
-        riot.openNotebook(self.host + event.item.type + "s/" + event.item.path);
+        riot.openUrl(self.host + event.item.type + "s/" + event.item.path);
       }
     }
     
