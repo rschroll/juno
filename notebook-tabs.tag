@@ -17,7 +17,7 @@
     self.notebooks = [];
     
     function urlsAreEquivalent(first, second) {
-      return first.split("#")[0] == second.split("#")[0];
+      return first.split(/[\?#]/)[0] == second.split(/[\?#]/)[0];
     }
     
     function focusNotebook(nb) {
@@ -68,7 +68,8 @@
         // cross-window javascript.
         var KernelSelector = require("notebook/js/kernelselector").KernelSelector;
         KernelSelector.prototype.new_notebook = function (name) {
-          console.log('${NEW_NOTEBOOK}' + name);
+          var dir = IPython.utils.url_path_split(IPython.notebook.notebook_path)[0];
+          console.log('${NEW_NOTEBOOK}' + name + " " + dir);
         }
         
         console.log('${KERNEL_LOGO}' + document.querySelector(".current_kernel_logo").src);
@@ -128,7 +129,8 @@
         } else if (msg.slice(0, CHECKPOINT.length) == CHECKPOINT) {
           header.title = msg.slice(CHECKPOINT.length);
         } else if (msg.slice(0, NEW_NOTEBOOK.length) == NEW_NOTEBOOK) {
-          console.log("New notebook requested", msg.slice(NEW_NOTEBOOK.length));
+          let args = msg.slice(NEW_NOTEBOOK.length).split(" ");
+          riot.newFile("notebook", args[1], args[0]);
         } else if (msg.slice(0, KERNEL_LOGO.length) == KERNEL_LOGO) {
           icon.src = msg.slice(KERNEL_LOGO.length);
         } else if (msg == CLOSE) {

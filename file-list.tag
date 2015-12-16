@@ -106,6 +106,39 @@
         return type + " header-" + path + " typcn typcn-chevron-right-outline";
       return type;
     }
+    
+    newFile(type, directory, kernel_name) {
+      let xhr = new XMLHttpRequest();
+      let body = {"type": type};
+      if (type == "file")
+        body["ext"] = "txt";
+      let bodyString = JSON.stringify(body);
+      
+      xhr.open("POST", self.host + "api/contents/" + directory);
+      xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+      xhr.responseType = "json";
+      xhr.addEventListener("load", function (event) {
+        if (xhr.status != 201 || !xhr.response) {
+          console.log("Problem creating a new file: Error code " + xhr.status + " (" + xhr.statusText +
+                      ") received.\nNote that you must set 'NotebookApp.allow_origin' to 'file://' " +
+                      "or '*' in order for file creation to work.");
+          return;
+        }
+        
+        if (type == directory) {
+          self.loadFiles(response.path);
+        } else {
+          let newUrl = self.host + xhr.response.type + "s/" + xhr.response.path;
+          if (kernel_name !== undefined)
+            newUrl += "?kernel_name=" + kernel_name;
+          riot.openUrl(newUrl);
+          
+          if (directory == self.dir)
+            self.loadFiles(self.dir);
+        }
+      });
+      xhr.send(bodyString);
+    }
   </script>
   
   <style scoped>

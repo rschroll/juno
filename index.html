@@ -34,6 +34,9 @@
       riot.login = function (url, callback) {
         login.login(url, callback);
       }
+      riot.newFile = function (type, directory, kernel_name) {
+        list.newFile(type, directory, kernel_name);
+      }
       
       require("electron").ipcRenderer.on('set-host', function (event, message) {
         riot.host = message;
