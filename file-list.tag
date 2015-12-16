@@ -55,6 +55,11 @@
         if (xhr.responseType !== "json") {
           console.log("Unexpected response: " + xhr.responseType);
         } else {
+          if (xhr.responseURL.slice(self.host.length, self.host.length + 5) == "login") {
+            riot.login(xhr.responseURL, function () { self.loadFiles(dir, host); });
+            return;
+          }
+          
           let files = xhr.response["content"];
           let currentType = "";
           let display = {"directory": "Directories", "notebook": "Notebooks", "file": "Files"};

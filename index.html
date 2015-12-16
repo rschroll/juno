@@ -16,10 +16,12 @@
   <body>
     <file-list></file-list>
     <notebook-tabs></notebook-tabs>
+    <login-view></login-view>
     <script src="tags.js"></script>
     <script>
       var list = riot.mount("file-list")[0];
       var tabs = riot.mount("notebook-tabs")[0];
+      var login = riot.mount("login-view")[0];
       riot.host = undefined;
       riot.openUrl = function (url) {
         if (riot.host === undefined)
@@ -28,6 +30,9 @@
         if (url.slice(0, riot.host.length) == riot.host)
           return tabs.openNotebook(url);
         require("electron").shell.openExternal(url);
+      }
+      riot.login = function (url, callback) {
+        login.login(url, callback);
       }
       
       require("electron").ipcRenderer.on('set-host', function (event, message) {
