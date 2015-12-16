@@ -37,6 +37,33 @@
         icon.classList.remove("busy");
     }
     
+    var SAVE_STATUS = "X-Save-Status: ";
+    var CHECKPOINT = "X-Checkpoint: "
+    var CLIENT_JS = `
+        (function () {
+        var old_setter = Jupyter.save_widget.set_save_status;
+        Jupyter.save_widget.set_save_status = function (msg) {
+            console.log('${SAVE_STATUS}' + msg);
+            return old_setter.apply(this, arguments);
+        }
+        
+        function report_checkpoint() {
+            var text = document.querySelector('.checkpoint_status').textContent;
+            console.log('${CHECKPOINT}' + text);
+        }
+        
+        var old_checkpoint = Jupyter.save_widget._render_checkpoint;
+        Jupyter.save_widget._render_checkpoint = function (checkpoint) {
+            var retval = old_checkpoint.apply(this, arguments);
+            report_checkpoint();
+            return retval;
+        }
+        report_checkpoint();
+        
+        document.querySelector('#toggle_header').click();
+    })();
+    `
+    
     function createNotebook(url) {
       let webview = document.createElement("webview");
       webview.src = url;
@@ -54,6 +81,8 @@
       header.appendChild(close);
       self.headers.appendChild(header);
       
+      let startStatus = 0;  // 1 when "Starting", 2 afterwards
+      
       webview.addEventListener("page-title-updated", function (event) {
         let t = event.title;
         let re = /\(([^\)]*)\) (.*)/;
@@ -69,7 +98,24 @@
           match = t.match(re);
         }
         setStatus(icon, busy);
+        if (starting) {
+          startStatus = 1;
+        } else if (startStatus == 1) {
+          startStatus = 2;
+          webview.executeJavaScript(CLIENT_JS);
+        }
         title.innerHTML = t;
+      });
+      webview.addEventListener("console-message", function (event) {
+        let msg = event.message;
+        if (msg.slice(0, SAVE_STATUS.length) == SAVE_STATUS) {
+          if (msg.slice(SAVE_STATUS.length) == "(unsaved changes)")
+            header.classList.add("unsaved");
+          else
+            header.classList.remove("unsaved");
+        } else if (msg.slice(0, CHECKPOINT.length) == CHECKPOINT) {
+          header.title = msg.slice(CHECKPOINT.length);
+        }
       });
       header.addEventListener("click", function (event) {
         self.openNotebook(webview.src);
@@ -169,6 +215,9 @@
     }
     li span {
       margin: 0 0.5em;
+    }
+    li.unsaved span {
+      color: red;
     }
     li i {
       border: thin solid rgba(0,0,0,0);
