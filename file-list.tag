@@ -14,6 +14,13 @@
     </li>
   </ul>
   
+  <div>
+    <span class="typcn typcn-document-text" title="New Notebook" onclick={ onNewNotebook }></span>
+    <span class="typcn typcn-document" title="New Text File" onclick={ onNewFile }></span>
+    <span class="typcn typcn-folder" title="New Directory" onclick={ onNewDirectory }></span>
+    <span class="typcn typcn-refresh" title="Refresh" onclick={ onRefresh }></span>
+  </div>
+  
   <script>
     'use strict';
     var self = this;
@@ -31,12 +38,33 @@
         let attr = "hide" + event.item.name;
         self[attr] = !self[attr];
       } else {
-        riot.openUrl(self.host + event.item.type + "s/" + event.item.path);
+        let mechanism = event.item.type + "s/";
+        if (event.item.type == "file" &&
+            (!event.item.mimetype || event.item.mimetype.slice(0,4) == "text"))
+            // Unknown mimetypes are edited. This logic from the notebook.
+          mechanism = "edit/";
+        riot.openUrl(self.host + mechanism + event.item.path);
       }
     }
     
     onSelect(event) {
       self.loadFiles(self.levels[event.target.selectedIndex]["path"]);
+    }
+    
+    onRefresh(event) {
+      self.loadFiles(self.dir);
+    }
+    
+    onNewNotebook(event) {
+      self.newFile("notebook", self.dir);
+    }
+    
+    onNewFile(event) {
+      self.newFile("file", self.dir);
+    }
+    
+    onNewDirectory(event) {
+      self.newFile("directory", self.dir);
     }
     
     loadFiles(dir, host) {
@@ -111,7 +139,7 @@
       let xhr = new XMLHttpRequest();
       let body = {"type": type};
       if (type == "file")
-        body["ext"] = "txt";
+        body["ext"] = ".txt";
       let bodyString = JSON.stringify(body);
       
       xhr.open("POST", self.host + "api/contents/" + directory);
@@ -125,10 +153,11 @@
           return;
         }
         
-        if (type == directory) {
-          self.loadFiles(response.path);
+        if (type == "directory") {
+          self.loadFiles(xhr.response.path);
         } else {
-          let newUrl = self.host + xhr.response.type + "s/" + xhr.response.path;
+          let mechanism = (type == "noteboook") ? "notebooks/" : "edit/";
+          let newUrl = self.host + mechanism + xhr.response.path;
           if (kernel_name !== undefined)
             newUrl += "?kernel_name=" + kernel_name;
           riot.openUrl(newUrl);
@@ -163,7 +192,7 @@
       left: 0;
       right: 0;
       top: 2em;
-      bottom: 0;
+      bottom: 2em;
       overflow: auto;
       margin: 0;
       padding: 0;
@@ -193,6 +222,38 @@
     .hideNotebooks .header-notebook:before,
     .hideFiles .header-file:before {
       transform: rotate(0deg);
+    }
+    
+    div {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2em;
+      background-color: #ddd;
+    }
+    div span {
+      border: thin solid #aaa;
+      background-color: #eee;
+      font-size: 1.33em;
+      line-height: 1.2; /* Default, but just to be safe */
+      border-radius: 0.2em;
+      padding: 0.1em;
+      margin: 0.05em;
+      float: left;
+    }
+    div span:hover {
+      background-color: #f8f8f8;
+    }
+    div span:active::before {
+      transform: translate(1px, 1px);
+    }
+    div span:first-child {
+      margin-left: 0.1em;
+    }
+    div span:last-child {
+      float: right;
+      margin-right: 0.1em;
     }
   </style>
 </file-list>
