@@ -42,6 +42,10 @@
         riot.host = message;
         list.loadFiles("", riot.host);
       });
+      
+      window.onbeforeunload = function (event) {
+        event.returnValue = tabs.closeAll();
+      }
     </script>
   </body>
 </html>

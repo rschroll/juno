@@ -232,6 +232,20 @@
           self.openNotebook(self.notebooks[i].webview.src);
       }
     }
+    
+    closeAll() {
+      let modifiedCount = 0;
+      for (let i in self.notebooks)
+        if (self.notebooks[i].header.classList.contains("unsaved"))
+          modifiedCount += 1;
+      
+      let modifiedText = (modifiedCount == 1) ? "A notebook has" : modifiedCount + " notebooks have";
+      if (modifiedCount == 0 ||
+          window.confirm(modifiedText + " unsaved changes.\n\nClose anyway?")) {
+        return true;
+      }
+      return false;
+    }
   </script>
   
   <style scoped>
