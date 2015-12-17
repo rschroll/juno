@@ -42,7 +42,7 @@
     var NEW_NOTEBOOK = "X-New-Notebook: ";
     var KERNEL_LOGO = "X-Kernel-Logo: ";
     var CLOSE = "X-Close";
-    var CLIENT_JS = `
+    var CLIENT_JS_NOTEBOOK = `
       (function () {
         var old_setter = IPython.save_widget.set_save_status;
         IPython.save_widget.set_save_status = function (msg) {
@@ -77,8 +77,26 @@
         document.querySelector('#toggle_header').click();
       })();
     `
+    var CLIENT_JS_EDIT = `
+      (function () {
+        function report_modified() {
+          var text = document.querySelector('.last_modified').textContent;
+          console.log('${CHECKPOINT}' + text);
+        }
+        
+        var SaveWidget = require("edit/js/savewidget").SaveWidget;
+        var old_render = SaveWidget.prototype._render_last_modified;
+        SaveWidget.prototype._render_last_modified = function () {
+          var retval = old_render.apply(this, arguments);
+          report_modified();
+          return retval;
+        }
+        report_modified();
+      })();
+    `
     
     function createNotebook(url) {
+      let mode = url.split("/")[3];
       let webview = document.createElement("webview");
       webview.src = url;
       self.webviews.appendChild(webview);
@@ -96,29 +114,48 @@
       
       let startStatus = 0;  // 1 when "Starting", 2 afterwards
       
-      webview.addEventListener("page-title-updated", function (event) {
-        let t = event.title;
-        let re = /\(([^\)]*)\) (.*)/;
-        let match = t.match(re);
-        let busy = false;
-        let starting = false;
-        while (match) {
-          if (match[1] == "Busy")
-            busy = true;
-          else if (match[1] == "Starting")
-            starting = true;
-          t = match[2];
-          match = t.match(re);
+      webview.addEventListener("page-title-updated", (mode == "notebooks")
+        ? function (event) {
+          let t = event.title;
+          let re = /\(([^\)]*)\) (.*)/;
+          let match = t.match(re);
+          let busy = false;
+          let starting = false;
+          while (match) {
+            if (match[1] == "Busy")
+              busy = true;
+            else if (match[1] == "Starting")
+              starting = true;
+            t = match[2];
+            match = t.match(re);
+          }
+          setStatus(icon, busy);
+          if (starting) {
+            startStatus = 1;
+          } else if (startStatus == 1) {
+            startStatus = 2;
+            webview.executeJavaScript(CLIENT_JS_NOTEBOOK);
+          }
+          title.innerHTML = t;
         }
-        setStatus(icon, busy);
-        if (starting) {
-          startStatus = 1;
-        } else if (startStatus == 1) {
-          startStatus = 2;
-          webview.executeJavaScript(CLIENT_JS);
+        : function (event) {
+          let t = event.title;
+          if (t[0] == "*") {
+            header.classList.add("unsaved");
+            t = t.slice(1);
+          } else {
+            header.classList.remove("unsaved");
+          }
+          title.innerHTML = t;
+          
+          if (startStatus == 0) {
+            startStatus = 1;
+          } else if (startStatus == 1) {
+            startStatus = 2;
+            webview.executeJavaScript(CLIENT_JS_EDIT);
+          }
         }
-        title.innerHTML = t;
-      });
+      );
       webview.addEventListener("console-message", function (event) {
         let msg = event.message;
         if (msg.slice(0, SAVE_STATUS.length) == SAVE_STATUS) {
@@ -149,12 +186,16 @@
       close.addEventListener("click", function (event) {
         if (!header.classList.contains("unsaved") ||
             window.confirm("Notebook contains unsaved changes.\n\nClose anyway?")) {
-          webview.executeJavaScript(`
-            function signalClose() {
-              console.log('${CLOSE}');
-            }
-            IPython.notebook.session.delete(signalClose, signalClose)
-          `);
+          if (mode == "notebooks") {
+            webview.executeJavaScript(`
+              function signalClose() {
+                console.log('${CLOSE}');
+              }
+              IPython.notebook.session.delete(signalClose, signalClose)
+            `);
+          } else {
+            self.closeNotebook(nb);
+          }
         }
         event.stopPropagation();
       });
