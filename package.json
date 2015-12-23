@@ -1,28 +1,29 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "name": "juno",
+  "version": "0.1.0",
+  "description": "View Jupyter notebooks as a desktop application",
   "main": "main.js",
   "scripts": {
-    "start": "electron main.js"
+    "start": "electron main.js",
+    "prestart": "riot . tags.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/atom/electron-quick-start.git"
+    "url": "git+https://github.com/rschroll/juno.git"
   },
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial"
+    "Jupyter",
+    "IPython",
+    "notebook"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "Robert Schroll",
+  "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/atom/electron-quick-start/issues"
+    "url": "https://github.com/rschroll/juno/issues"
   },
-  "homepage": "https://github.com/atom/electron-quick-start#readme",
+  "homepage": "https://github.com/rschroll/juno#readme",
   "devDependencies": {
-    "electron-prebuilt": "^0.35.0"
+    "electron-prebuilt": "^0.35.0",
+    "riot": "~2.2.2"
   }
 }
