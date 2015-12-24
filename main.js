@@ -25,6 +25,10 @@ app.on('window-all-closed', function() {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
   let host = process.argv[2];
+  if (!host) {
+    console.log("Error: Must past host (e.g., http://localhost:8888) as argument.");
+    app.exit(1);
+  }
   
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
