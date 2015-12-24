@@ -107,8 +107,8 @@
       let title = document.createElement("span");
       header.appendChild(title);
       let close = document.createElement("i");
-      close.classList.add("typcn");
-      close.classList.add("typcn-times");
+      close.classList.add("fa");
+      close.classList.add("fa-times");
       header.appendChild(close);
       self.headers.appendChild(header);
       

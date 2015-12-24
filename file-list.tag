@@ -15,10 +15,10 @@
   </ul>
   
   <div>
-    <span class="typcn typcn-document-text" title="New Notebook" onclick={ onNewNotebook }></span>
-    <span class="typcn typcn-document" title="New Text File" onclick={ onNewFile }></span>
-    <span class="typcn typcn-folder" title="New Directory" onclick={ onNewDirectory }></span>
-    <span class="typcn typcn-refresh" title="Refresh" onclick={ onRefresh }></span>
+    <span class="fa fa-book" title="New Notebook" onclick={ onNewNotebook }></span>
+    <span class="fa fa-file-o" title="New Text File" onclick={ onNewFile }></span>
+    <span class="fa fa-folder-o" title="New Directory" onclick={ onNewDirectory }></span>
+    <span class="fa fa-refresh" title="Refresh" onclick={ onRefresh }></span>
   </div>
   
   <script>
@@ -125,13 +125,13 @@
     
     liClass(type, path) {
       if (type == "directory")
-        return type + " typcn typcn-folder";
+        return type + " fa fa-folder-o";
       if (type == "notebook")
-        return type + " typcn typcn-document-text";
+        return type + " fa fa-book";
       if (type == "file")
-        return type + " typcn typcn-document";
+        return type + " fa fa-file-o";
       if (type == "header")
-        return type + " header-" + path + " typcn typcn-chevron-right-outline";
+        return type + " header-" + path + " fa fa-caret-right";
       return type;
     }
     
