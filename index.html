@@ -38,9 +38,13 @@
         list.newFile(type, directory, kernel_name);
       }
       
-      require("electron").ipcRenderer.on('set-host', function (event, message) {
+      var ipcRenderer = require("electron").ipcRenderer;
+      ipcRenderer.on('set-host', function (event, message) {
         riot.host = message;
         list.loadFiles("", riot.host);
+      });
+      ipcRenderer.on('toggle-dev-tools', function (event, message) {
+        tabs.toggleDevTools();
       });
       
       window.onbeforeunload = function (event) {

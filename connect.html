@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Connect to Server</title>
+    <style>
+      body {
+        font: menu;
+        background-color: #eee;
+        -webkit-user-select: none;
+      }
+      
+      h1 {
+        font-size: 1.4em;
+      }
+      
+      ul {
+        padding-left: 0;
+        list-style: none;
+      }
+      li {
+        margin: 0.4em 0;
+      }
+      a {
+        text-decoration: none;
+        color: black;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      
+      form:invalid input[type=submit]{
+        color: #999;
+      }
+    </style>
+    <link rel="stylesheet" href="font-awesome/css/font-awesome.css" />
+    <script>
+      'use strict';
+      let electron = require("electron");
+      
+      function connect(host) {
+        electron.ipcRenderer.send('open-host', host);
+        window.close();
+      }
+      
+      function createLi(host) {
+        let a = document.createElement("a");
+        a.href = "#";
+        a.innerHTML = host;
+        a.addEventListener("click", function (event) { connect(host); });
+        let li = document.createElement("li");
+        li.appendChild(a);
+        return li;
+      }
+      
+      document.addEventListener("DOMContentLoaded", function (event) {
+        let hosts = [];
+        try {
+          hosts = JSON.parse(localStorage.recentHosts);
+        } catch (e) {
+          // pass
+        }
+        
+        let hostsEl = document.querySelector("#hosts");
+        for (let i in hosts)
+          hostsEl.appendChild(createLi(hosts[i]));
+        
+        let form = document.querySelector("#host-form");
+        form.addEventListener("submit", function (event) {
+          let host = document.querySelector("#host-input").value;
+          connect(host);
+        });
+        
+        let scrollHeight = document.body.scrollHeight;
+        if (scrollHeight > document.documentElement.clientHeight)
+          electron.remote.getCurrentWindow().setContentSize(document.documentElement.clientWidth, scrollHeight);
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Connect to Server</h1>
+    <ul id="hosts"></ul>
+    <form id="host-form">
+      <input type="url" id="host-input" placeholder="http://localhost:8888" required />
+      <input type="submit" value="Connect" />
+    </form>
+  </body>
+</html>

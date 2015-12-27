@@ -246,6 +246,16 @@
       }
       return false;
     }
+    
+    toggleDevTools() {
+      let webview = self.webviews.querySelector("webview.focused");
+      if (webview) {
+        if (webview.isDevToolsOpened())
+          webview.closeDevTools();
+        else
+          webview.openDevTools();
+      }
+    }
   </script>
   
   <style scoped>

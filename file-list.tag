@@ -31,6 +31,20 @@
     self.host = undefined;
     self.hideDirectories = self.hideNotebooks = self.hideFiles = false;
     
+    function saveHost(host) {
+      let hosts = [];
+      try {
+        hosts = JSON.parse(localStorage.recentHosts);
+      } catch (e) {
+        // pass
+      }
+      let index = hosts.indexOf(host);
+      if (index != -1)
+        hosts.splice(index, 1);
+      hosts.splice(0, 0, host);
+      localStorage.recentHosts = JSON.stringify(hosts);
+    }
+    
     onClick(event) {
       if (event.item.type == "directory") {
         self.loadFiles(event.item.path);
@@ -72,6 +86,7 @@
         self.host = host;
         if (self.host.slice(-1) != "/")
           self.host += "/";
+        saveHost(host);
       }
       if (self.host === undefined)
         throw "Host not set."
