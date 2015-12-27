@@ -27,10 +27,12 @@ app.on('window-all-closed', function() {
 });
 
 ipcMain.on('open-host', function (event, arg) {
-  event.returnValue = openNotebook(arg);
+  if (openNotebook(arg))
+    event.sender.send('close');
 });
 
 function openNotebook(resource) {
+  console.log("Resource: '" + resource + "'");
   // resource may be a server to connect to or a file path to start a server at.
   if (resource.indexOf("://") != -1) {
     createNotebookWindow(resource);
@@ -42,13 +44,16 @@ function openNotebook(resource) {
   try {
     info = fs.statSync(cwd);
   } catch (e) {
+    console.log("Could not stat path: " + cwd);
     return false;
   }
   if (!info.isDirectory())
     cwd = path.dirname(cwd);  // TODO: Save filename and open it in notebook
   
+  console.log("Opening notebook server in " + cwd);
   let urlFound = false;
   let proc = spawn('jupyter', ['notebook', '--no-browser'], {'cwd': cwd});
+  proc.stdout.on('data', function (data) { console.log("Stdout:", data.toString()); });
   proc.stderr.on('data', function (data) {
     console.log("Server:", data.toString());
     if (!urlFound) {

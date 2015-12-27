@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Connect to Server</title>
+    <title>Open Notebook</title>
     <style>
       body {
         font: menu;
@@ -11,7 +11,11 @@
       }
       
       h1 {
-        font-size: 1.4em;
+        font-size: 1.44em;
+      }
+      h2 {
+        font-size: 1.2em;
+        margin-bottom: 0;
       }
       
       ul {
@@ -39,8 +43,7 @@
       let electron = require("electron");
       
       function connect(host) {
-        if (electron.ipcRenderer.sendSync('open-host', host))
-          window.close();
+        electron.ipcRenderer.send('open-host', host);
       }
       
       function createLi(host) {
@@ -52,6 +55,10 @@
         li.appendChild(a);
         return li;
       }
+      
+      electron.ipcRenderer.on('close', function (event, message) {
+        //window.close();  // TODO: Figure out how to close this window without hanging notebook creation.
+      });
       
       document.addEventListener("DOMContentLoaded", function (event) {
         let hosts = [];
@@ -71,6 +78,13 @@
           connect(host);
         });
         
+        let file = document.querySelector("#file-input");
+        file.addEventListener("change", function (event) {
+          let files = event.target.files;
+          if (files.length > 0)
+            connect(files[0].path);
+        });
+        
         let scrollHeight = document.body.scrollHeight;
         if (scrollHeight > document.documentElement.clientHeight)
           electron.remote.getCurrentWindow().setContentSize(document.documentElement.clientWidth, scrollHeight);
@@ -78,8 +92,13 @@
     </script>
   </head>
   <body>
-    <h1>Connect to Server</h1>
+    <h1>Recent Notebooks</h1>
     <ul id="hosts"></ul>
+    <h2>Open local notebook</h2>
+    <form>
+      <input type="file" id="file-input" />
+    </form>
+    <h2>Connect to server</h2>
     <form id="host-form">
       <input type="url" id="host-input" placeholder="http://localhost:8888" required />
       <input type="submit" value="Connect" />
