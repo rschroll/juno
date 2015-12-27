@@ -4,6 +4,9 @@ const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.
 const Menu = electron.Menu;
 const ipcMain = electron.ipcMain;
+const spawn = require('child_process').spawn;
+const path = require('path');
+const fs = require('fs');
 
 app.commandLine.appendSwitch('ignore-certificate-errors')
 
@@ -24,12 +27,51 @@ app.on('window-all-closed', function() {
 });
 
 ipcMain.on('open-host', function (event, arg) {
-  createNotebookWindow(arg);
+  event.returnValue = openNotebook(arg);
 });
 
-function createNotebookWindow(host) {
+function openNotebook(resource) {
+  // resource may be a server to connect to or a file path to start a server at.
+  if (resource.indexOf("://") != -1) {
+    createNotebookWindow(resource);
+    return true;
+  }
+  
+  let info;
+  let cwd = path.resolve(resource);
+  try {
+    info = fs.statSync(cwd);
+  } catch (e) {
+    return false;
+  }
+  if (!info.isDirectory())
+    cwd = path.dirname(cwd);  // TODO: Save filename and open it in notebook
+  
+  let urlFound = false;
+  let proc = spawn('jupyter', ['notebook', '--no-browser'], {'cwd': cwd});
+  proc.stderr.on('data', function (data) {
+    console.log("Server:", data.toString());
+    if (!urlFound) {
+      let url = data.toString().match(/https?:\/\/localhost:[0-9]*/);
+      if (url) {
+        urlFound = true;
+        createNotebookWindow(url[0], proc);  // TODO: Pass cwd to be saved instead of host
+      }
+    }
+  });
+  return true;
+}
+
+function createNotebookWindow(host, proc) {
   // Create the browser window.
   let window = new BrowserWindow({width: 800, height: 600});
+  if (proc) {
+    window.server = proc;
+    window.server.on('close', function (code, signal) {
+      console.log("Server process ended.");
+      window.server = null;
+    });
+  }
 
   // and load the index.html of the app.
   window.loadURL(`file://${__dirname}/index.html`);
@@ -40,6 +82,9 @@ function createNotebookWindow(host) {
 
   // Emitted when the window is closed.
   window.on('closed', function() {
+    if (window.server)
+      window.server.kill()
+    
     // Dereference the window object.
     let index = windows.indexOf(window);
     if (index != -1)
@@ -99,8 +144,12 @@ app.on('ready', function() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   
   let host = process.argv[2];
-  if (!host)
+  if (!host) {
     createConnectWindow();
-  else
-    createNotebookWindow(host);
+  } else {
+    if (!openNotebook(host)) {
+      console.log("Error: Could not open notebook", host);
+      app.exit(1);
+    }
+  }
 });

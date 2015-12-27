@@ -39,8 +39,8 @@
       let electron = require("electron");
       
       function connect(host) {
-        electron.ipcRenderer.send('open-host', host);
-        window.close();
+        if (electron.ipcRenderer.sendSync('open-host', host))
+          window.close();
       }
       
       function createLi(host) {
