@@ -17,11 +17,13 @@
     <file-list></file-list>
     <notebook-tabs></notebook-tabs>
     <login-view></login-view>
+    <connect-page></connect-page>
     <script src="tags.js"></script>
     <script>
       var list = riot.mount("file-list")[0];
       var tabs = riot.mount("notebook-tabs")[0];
       var login = riot.mount("login-view")[0];
+      var connect = riot.mount("connect-page")[0];
       riot.host = undefined;
       riot.openUrl = function (url) {
         if (riot.host === undefined)
@@ -41,7 +43,12 @@
       var ipcRenderer = require("electron").ipcRenderer;
       ipcRenderer.on('set-host', function (event, message) {
         riot.host = message;
-        list.loadFiles("", riot.host);
+        if (riot.host) {
+          list.loadFiles("", riot.host);
+          connect.close();
+        } else {
+          connect.open();
+        }
       });
       ipcRenderer.on('toggle-dev-tools', function (event, message) {
         tabs.toggleDevTools();

@@ -27,15 +27,21 @@ app.on('window-all-closed', function() {
 });
 
 ipcMain.on('open-host', function (event, arg) {
-  if (openNotebook(arg))
-    event.sender.send('close');
+  // Only a single window right now...
+  openNotebook(arg, windows[0]);
 });
 
-function openNotebook(resource) {
+function openNotebook(resource, window) {
+  if (!resource) {
+    // Open connection page in window...
+    createNotebookWindow(null, null, window);
+    return true;
+  }
+  
   console.log("Resource: '" + resource + "'");
   // resource may be a server to connect to or a file path to start a server at.
   if (resource.indexOf("://") != -1) {
-    createNotebookWindow(resource);
+    createNotebookWindow(resource, null, window);
     return true;
   }
   
@@ -60,16 +66,17 @@ function openNotebook(resource) {
       let url = data.toString().match(/https?:\/\/localhost:[0-9]*/);
       if (url) {
         urlFound = true;
-        createNotebookWindow(url[0], proc);  // TODO: Pass cwd to be saved instead of host
+        createNotebookWindow(url[0], proc, window);  // TODO: Pass cwd to be saved instead of host
       }
     }
   });
   return true;
 }
 
-function createNotebookWindow(host, proc) {
-  // Create the browser window.
-  let window = new BrowserWindow({width: 800, height: 600});
+function createNotebookWindow(host, proc, window) {
+  if (!window)
+    window = createWindow();
+  
   if (proc) {
     window.server = proc;
     window.server.on('close', function (code, signal) {
@@ -78,12 +85,22 @@ function createNotebookWindow(host, proc) {
     });
   }
 
+  function setHost() {
+    window.webContents.send('set-host', host);
+  }
+  
+  if (window.webContents.isLoading())
+    window.webContents.on('did-finish-load', setHost);
+  else
+    setHost();
+}
+
+function createWindow() {
+  // Create the browser window.
+  let window = new BrowserWindow({width: 800, height: 600});
+
   // and load the index.html of the app.
   window.loadURL(`file://${__dirname}/index.html`);
-
-  window.webContents.on('did-finish-load', function() {
-    window.webContents.send('set-host', host);
-  });
 
   // Emitted when the window is closed.
   window.on('closed', function() {
@@ -97,19 +114,7 @@ function createNotebookWindow(host, proc) {
   });
   
   windows.push(window);
-}
-
-function createConnectWindow() {
-  let window = new BrowserWindow({width: 300, height: 100});
-  window.loadURL(`file://${__dirname}/connect.html`);
-  
-  window.on('closed', function () {
-    let index = windows.indexOf(window);
-    if (index != -1)
-      windows.splice(index, 1);
-  });
-  
-  windows.push(window);
+  return window;
 }
 
 // This method will be called when Electron has finished
@@ -149,12 +154,8 @@ app.on('ready', function() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   
   let host = process.argv[2];
-  if (!host) {
-    createConnectWindow();
-  } else {
-    if (!openNotebook(host)) {
-      console.log("Error: Could not open notebook", host);
-      app.exit(1);
-    }
+  if (!openNotebook(host)) {
+    console.log("Error: Could not open notebook", host);
+    app.exit(1);
   }
 });
