@@ -189,9 +189,9 @@
   
   <style scoped>
     :scope {
-      position: fixed;
+      position: absolute;
       left: 0;
-      width: 200px;
+      right: 0;
       top: 0;
       bottom: 0;
     }

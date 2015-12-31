@@ -11,12 +11,48 @@
         -webkit-user-select: none;
         cursor: default;
       }
+      
+      #main {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: stretch;
+      }
+      .left-pane {
+        position: relative;
+        width: 200px;
+      }
+      .right-pane {
+        position: relative;
+        flex-grow: 1;
+      }
+      .separator {
+        width: 4px;
+        background-color: #ddd;
+        cursor: col-resize;
+      }
+      .separator:hover {
+        background-color: #ccc;
+      }
+      .separator:active {
+        background-color: #aaa;
+      }
     </style>
     <link rel="stylesheet" href="font-awesome/css/font-awesome.css" />
   </head>
   <body>
-    <file-list></file-list>
-    <notebook-tabs></notebook-tabs>
+    <div id="main" class="panes">
+      <div class="left-pane">
+        <file-list></file-list>
+      </div>
+      <span class="separator"></span>
+      <div class="right-pane">
+        <notebook-tabs></notebook-tabs>
+      </div>
+    </div>
     <login-view></login-view>
     <connect-page></connect-page>
     <script src="tags.js"></script>
@@ -65,6 +101,36 @@
       window.onbeforeunload = function (event) {
         event.returnValue = tabs.closeAll();
       }
+      
+      function setPaneDrag(pane) {
+        let lp = pane.querySelector(".left-pane");
+        let sep = pane.querySelector(".separator");
+        let dragStartX = 0;
+        let widthStart = 0;
+        
+        function mouseUpListener(event) {
+          document.body.removeEventListener('mouseup', mouseUpListener, true);
+          document.body.removeEventListener('mousemove', mouseMoveListener, true);
+        }
+        
+        function mouseMoveListener(event) {
+          let dx = event.pageX - dragStartX;
+          lp.style.width = widthStart + dx + "px";
+        }
+        
+        sep.addEventListener("mousedown", function (event) {
+          dragStartX = event.pageX;
+          widthStart = lp.clientWidth;
+          document.body.addEventListener("mouseup", mouseUpListener, true);
+          document.body.addEventListener("mousemove", mouseMoveListener, true);
+        });
+      }
+      
+      document.addEventListener("DOMContentLoaded", function (event) {
+        let panes = document.querySelectorAll(".panes");
+        for (let i=0; i<panes.length; i++)
+          setPaneDrag(panes[i]);
+      });
     </script>
   </body>
 </html>
