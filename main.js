@@ -31,6 +31,10 @@ ipcMain.on('open-host', function (event, arg) {
   openNotebook(arg);
 });
 
+ipcMain.on('open-dialog', function (event) {
+  openDialog(BrowserWindow.fromWebContents(event.sender));
+});
+
 function openNotebook(resource) {
   let host = resource;
   let localPath = null;
@@ -152,7 +156,10 @@ function createWindow() {
 
 function openDialog(parent) {
   dialog.showOpenDialog(parent, {"properties": ["openDirectory"]},
-                        function (filenames) { openNotebook(filenames[0]); });
+                        function (filenames) {
+                          if (filenames)
+                            openNotebook(filenames[0]);
+                        });
 }
 
 // This method will be called when Electron has finished

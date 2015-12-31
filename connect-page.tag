@@ -6,7 +6,7 @@
     </ul>
     <h2>Open local notebook</h2>
     <form>
-      <input type="file" id="file-input" onchange={ onFileInput } />
+      <input type="button" value="Open Directory" onclick={ onDirectory } />
     </form>
     <h2>Connect to server</h2>
     <form id="host-form" onsubmit={ onHostSubmit }>
@@ -35,10 +35,8 @@
       connect(document.querySelector("#host-input").value);
     }
     
-    onFileInput(event) {
-      let files = event.target.files;
-      if (files.length > 0)
-        connect(files[0].path);
+    onDirectory(event) {
+      require("electron").ipcRenderer.send('open-dialog');
     }
     
     open() {
