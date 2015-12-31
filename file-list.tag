@@ -84,8 +84,6 @@
     loadFiles(dir, host) {
       if (host !== undefined) {
         self.host = host;
-        if (self.host.slice(-1) != "/")
-          self.host += "/";
         saveHost(host);
       }
       if (self.host === undefined)

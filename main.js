@@ -27,83 +27,113 @@ app.on('window-all-closed', function() {
 });
 
 ipcMain.on('open-host', function (event, arg) {
-  // Only a single window right now...
-  openNotebook(arg, windows[0]);
+  openNotebook(arg);
 });
 
-function openNotebook(resource, window) {
-  if (!resource) {
-    // Open connection page in window...
-    createNotebookWindow(null, null, window);
-    return true;
-  }
+function openNotebook(resource) {
+  let host = resource;
+  let localPath = null;
   
-  console.log("Resource: '" + resource + "'");
-  // resource may be a server to connect to or a file path to start a server at.
-  if (resource.indexOf("://") != -1) {
-    createNotebookWindow(resource, null, window);
-    return true;
-  }
-  
-  let info;
-  let cwd = path.resolve(resource);
-  try {
-    info = fs.statSync(cwd);
-  } catch (e) {
-    console.log("Could not stat path: " + cwd);
-    return false;
-  }
-  if (!info.isDirectory())
-    cwd = path.dirname(cwd);  // TODO: Save filename and open it in notebook
-  
-  console.log("Opening notebook server in " + cwd);
-  let urlFound = false;
-  let proc = spawn('jupyter', ['notebook', '--no-browser'], {'cwd': cwd});
-  proc.stdout.on('data', function (data) { console.log("Stdout:", data.toString()); });
-  proc.stderr.on('data', function (data) {
-    console.log("Server:", data.toString());
-    if (!urlFound) {
-      let url = data.toString().match(/https?:\/\/localhost:[0-9]*/);
-      if (url) {
-        urlFound = true;
-        createNotebookWindow(url[0], proc, window);  // TODO: Pass cwd to be saved instead of host
+  if (resource) {
+    // Check if the resource is a path, not a URL
+    if (resource.indexOf("://") == -1) {
+      let info;
+      localPath = path.resolve(resource);
+      host = null;
+      try {
+        info = fs.statSync(localPath);
+      } catch (e) {
+        console.log("Could not stat path: " + localPath);
+        return false;
       }
+      if (!info.isDirectory())
+        localPath = path.dirname(localPath);  // TODO: Save filename and open it in notebook
+    } else {
+      // Normalize trailing slash
+      if (host.slice(-1) != "/")
+        host += "/";
     }
-  });
-  return true;
-}
-
-function createNotebookWindow(host, proc, window) {
+  }
+  
+  // See if any existing window matches the host or path, whichever is requested
+  let window = null;
+  let empty = null;
+  for (let i in windows) {
+    let win = windows[i];
+    if (host && host == win.host || localPath && localPath == win.path) {
+      window = win;
+      break;
+    }
+    if (!win.host && !win.path)
+      empty = win;
+  }
+  
+  // If we didn't find an appropriate window, see if there are any windows that aren't
+  // displaying notebooks, and use that.
+  if (!window)
+    window = empty;
+  // And if not, create a new window.
   if (!window)
     window = createWindow();
   
-  if (proc) {
+  function setHost(host) {
+    window.host = host;
+    
+    let webContents = window.window.webContents;
+    function sendToClient() {
+      webContents.send('set-host', host);
+    }
+    if (webContents.isLoading())
+      webContents.on('did-finish-load', sendToClient);
+    else
+      sendToClient();
+  }
+  
+  // If the window doesn't have the notebook open, open it.
+  if (localPath && !window.path) {
+    console.log("Opening notebook server in " + localPath);
+    window.path = localPath;
+    let urlFound = false;
+    let proc = spawn('jupyter', ['notebook', '--no-browser'], {'cwd': localPath});
     window.server = proc;
-    window.server.on('close', function (code, signal) {
+    proc.stdout.on('data', function (data) { console.log("Stdout:", data.toString()); });
+    proc.stderr.on('data', function (data) {
+      console.log("Server:", data.toString());
+      if (!urlFound) {
+        let url = data.toString().match(/https?:\/\/localhost:[0-9]*\//);
+        if (url) {
+          urlFound = true;
+          setHost(url[0]);
+        }
+      }
+    });
+    proc.on('close', function (code, signal) {
       console.log("Server process ended.");
       window.server = null;
     });
-  }
-
-  function setHost() {
-    window.webContents.send('set-host', host);
+  } else if (!window.host) {
+    setHost(host);
   }
   
-  if (window.webContents.isLoading())
-    window.webContents.on('did-finish-load', setHost);
-  else
-    setHost();
+  // Focus the window.
+  window.window.show();
+  return true;
 }
 
 function createWindow() {
   // Create the browser window.
-  let window = new BrowserWindow({width: 800, height: 600});
+  let window = {
+    "window": new BrowserWindow({width: 800, height: 600}),
+    "host": null,
+    "path": null,
+    "server": null
+  };
 
   // and load the index.html of the app.
-  window.loadURL(`file://${__dirname}/index.html`);
+  window.window.loadURL(`file://${__dirname}/index.html`);
 
   // Emitted when the window is closed.
-  window.on('closed', function() {
+  window.window.on('closed', function() {
     if (window.server)
       window.server.kill()
     
@@ -111,6 +141,8 @@ function createWindow() {
     let index = windows.indexOf(window);
     if (index != -1)
       windows.splice(index, 1);
+    else
+      console.log("Couldn't find that window!");
   });
   
   windows.push(window);
