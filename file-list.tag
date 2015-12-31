@@ -8,7 +8,7 @@
     <option each={ levels } selected={ path == dir }>/{ path }</option>
   </select>
   
-  <ul class={ hideDirectories: hideDirectories, hideNotebooks: hideNotebooks, hideFiles: hideFiles }>
+  <ul class={ hideDirectories: hideDirectories, hideNotebooks: hideNotebooks, hideFiles: hideFiles } name="filelist">
     <li each={ files } class={ parent.liClass(type, path) } onclick={ parent.onClick }>
       { name }
     </li>
@@ -130,6 +130,8 @@
             }
           }
           
+          if (dir != self.dir)
+            self.filelist.scrollTop = 0;
           self.update({"files": files, "levels": levels, "dir": dir});
         }
       });
