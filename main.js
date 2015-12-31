@@ -4,6 +4,7 @@ const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;  // Module to create native browser window.
 const Menu = electron.Menu;
 const ipcMain = electron.ipcMain;
+const dialog = electron.dialog;
 const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
@@ -149,10 +150,34 @@ function createWindow() {
   return window;
 }
 
+function openDialog(parent) {
+  dialog.showOpenDialog(parent, {"properties": ["openDirectory"]},
+                        function (filenames) { openNotebook(filenames[0]); });
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
   let template = [
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "New Window",
+          accelerator: "CmdOrCtrl+N",
+          click: function(item, focusedWindow) {
+            openNotebook(null);
+          }
+        },
+        {
+          label: "Open Directory",
+          accelerator: "CmdOrCtrl+O",
+          click: function(item, focusedWindow) {
+            openDialog(focusedWindow);
+          }
+        }
+      ]
+    },
     {
       label: "Debug",
       submenu: [
