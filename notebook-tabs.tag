@@ -290,7 +290,6 @@
       border: thin solid #aaa;
       border-radius: 0.5em 0.5em 0 0;
       box-sizing: border-box;
-      cursor: default;
     }
     li.focused {
       background-color: #fff;
