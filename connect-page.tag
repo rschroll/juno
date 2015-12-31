@@ -89,6 +89,9 @@
     ul {
       padding-left: 0;
       list-style: none;
+      max-height: 10em;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     li {
       margin: 0.4em 0;
@@ -103,6 +106,21 @@
     
     form:invalid input[type=submit]{
       color: #999;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      border-radius: 4px;
+      background: rgba(0,0,0,0.1);
+    }
+    :hover::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+    }
+    ::-webkit-scrollbar-track {
+      border-radius: 4px;
+      background: rgba(0,0,0,0.1);
     }
   </style>
 </connect-page>
