@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Juno</title>
     <script src="riot.js"></script>
     <style>
       body {
@@ -21,6 +21,7 @@
     <connect-page></connect-page>
     <script src="tags.js"></script>
     <script>
+      'use strict';
       var list = riot.mount("file-list")[0];
       var tabs = riot.mount("notebook-tabs")[0];
       var login = riot.mount("login-view")[0];
@@ -40,12 +41,18 @@
       riot.newFile = function (type, directory, kernel_name) {
         list.newFile(type, directory, kernel_name);
       }
+      riot.formatPath = function (path) {
+        let home = require("electron").remote.app.getPath("home");
+        if (path.slice(0, home.length) == home)
+          return "~" + path.slice(home.length, path.length);
+        return path;
+      }
       
       var ipcRenderer = require("electron").ipcRenderer;
-      ipcRenderer.on('set-host', function (event, message) {
-        riot.host = message;
+      ipcRenderer.on('set-host', function (event, host, path) {
+        riot.host = host;
         if (riot.host) {
-          list.loadFiles("", riot.host);
+          list.loadFiles("", riot.host, path);
           connect.close();
         } else {
           connect.open();

@@ -2,7 +2,7 @@
   <div class="body">
     <h1>Recent Notebooks</h1>
     <ul id="hosts">
-      <li each={ hosts }><a href={ host } onclick={ parent.onClick }>{ host }</a></li>
+      <li each={ hosts }><a href={ host } onclick={ parent.onClick }>{ riot.formatPath(host) }</a></li>
     </ul>
     <h2>Open local notebook</h2>
     <form>

@@ -81,12 +81,13 @@ function openNotebook(resource) {
   if (!window)
     window = createWindow();
   
-  function setHost(host) {
+  function setHost(host, path) {
     window.host = host;
+    // window.path set earlier, since we want that done ASAP
     
     let webContents = window.window.webContents;
     function sendToClient() {
-      webContents.send('set-host', host);
+      webContents.send('set-host', host, path);
     }
     if (webContents.isLoading())
       webContents.on('did-finish-load', sendToClient);
@@ -108,7 +109,7 @@ function openNotebook(resource) {
         let url = data.toString().match(/https?:\/\/localhost:[0-9]*\//);
         if (url) {
           urlFound = true;
-          setHost(url[0]);
+          setHost(url[0], localPath);
         }
       }
     });
@@ -117,7 +118,7 @@ function openNotebook(resource) {
       window.server = null;
     });
   } else if (!window.host) {
-    setHost(host);
+    setHost(host, localPath);
   }
   
   // Focus the window.

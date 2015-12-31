@@ -31,18 +31,20 @@
     self.host = undefined;
     self.hideDirectories = self.hideNotebooks = self.hideFiles = false;
     
-    function saveHost(host) {
+    function saveHost(host, path) {
       let hosts = [];
+      let value = path || host;
       try {
         hosts = JSON.parse(localStorage.recentHosts);
       } catch (e) {
         // pass
       }
-      let index = hosts.indexOf(host);
+      let index = hosts.indexOf(value);
       if (index != -1)
         hosts.splice(index, 1);
-      hosts.splice(0, 0, host);
+      hosts.splice(0, 0, value);
       localStorage.recentHosts = JSON.stringify(hosts);
+      document.title = riot.formatPath(value) + " - Juno";
     }
     
     onClick(event) {
@@ -81,10 +83,10 @@
       self.newFile("directory", self.dir);
     }
     
-    loadFiles(dir, host) {
+    loadFiles(dir, host, path) {
       if (host !== undefined) {
         self.host = host;
-        saveHost(host);
+        saveHost(host, path);
       }
       if (self.host === undefined)
         throw "Host not set."
