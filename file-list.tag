@@ -202,6 +202,7 @@
       width: 100%;
       top: 0;
       height: 2em;
+      font-size: 1em;
     }
     
     ul {
@@ -213,6 +214,7 @@
       overflow: auto;
       margin: 0;
       padding: 0;
+      border-right: thin solid #aaa;
       list-style-type: none;
     }
     
@@ -243,17 +245,19 @@
     
     div {
       position: absolute;
+      box-sizing: border-box;
       left: 0;
       right: 0;
       bottom: 0;
       height: 2em;
       background-color: #ddd;
+      border-top: thin solid #aaa;
     }
     div span {
       border: thin solid #aaa;
       background-color: #eee;
-      font-size: 1.33em;
-      line-height: 1.2; /* Default, but just to be safe */
+      font-size: 1.2em;
+      line-height: 1.25;
       border-radius: 0.2em;
       padding: 0.1em;
       margin: 0.05em;

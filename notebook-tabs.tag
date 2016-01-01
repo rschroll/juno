@@ -331,6 +331,8 @@
       right: 0;
       top: 2em;
       bottom: 0;
+      border-left: thin solid #aaa;
+      background-color: #bbb;
     }
     webview {
       position: absolute;
