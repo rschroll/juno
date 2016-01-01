@@ -102,6 +102,28 @@
         event.returnValue = tabs.closeAll();
       }
       
+      function saveWindowGeometry() {
+        let geom = {
+          "width": window.outerWidth,
+          "height": window.outerHeight,
+          "mainPane": document.querySelector("#main .left-pane").clientWidth
+        };
+        localStorage.windowGeometry = JSON.stringify(geom);
+      }
+      
+      function loadWindowGeometry() {
+        let geom = null;
+        try {
+          geom = JSON.parse(localStorage.windowGeometry);
+        } catch (e) {
+          return;
+        }
+        if (geom.width && geom.height)
+          window.resizeTo(geom.width, geom.height);
+        if (geom.mainPane)
+          document.querySelector("#main .left-pane").style.width = geom.mainPane + "px";
+      }
+      
       function setPaneDrag(pane) {
         let lp = pane.querySelector(".left-pane");
         let sep = pane.querySelector(".separator");
@@ -111,6 +133,7 @@
         function mouseUpListener(event) {
           document.body.removeEventListener('mouseup', mouseUpListener, true);
           document.body.removeEventListener('mousemove', mouseMoveListener, true);
+          saveWindowGeometry();
         }
         
         function mouseMoveListener(event) {
@@ -130,6 +153,16 @@
         let panes = document.querySelectorAll(".panes");
         for (let i=0; i<panes.length; i++)
           setPaneDrag(panes[i]);
+        loadWindowGeometry();
+        
+        let resizeTimeout;
+        window.addEventListener("resize", function () {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(function () {
+            resizeTimeout = null;
+            saveWindowGeometry();
+          }, 250);
+        });
       });
     </script>
   </body>
