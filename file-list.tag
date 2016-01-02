@@ -1,7 +1,7 @@
-/* Copyright 2014-2015 Robert Schroll
+/* Copyright 2015-2016 Robert Schroll
  *
- * This file is part of Crosswords and is distributed under the terms
- * of the GPL. See the file LICENSE for full details.
+ * This file is part of Juno and is distributed under the terms of the
+ * BSD license. See the file LICENSE for full details.
  */
 <file-list>
   <select onchange={ onSelect }>

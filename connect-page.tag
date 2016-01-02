@@ -1,3 +1,8 @@
+/* Copyright 2015-2016 Robert Schroll
+ *
+ * This file is part of Juno and is distributed under the terms of the
+ * BSD license. See the file LICENSE for full details.
+ */
 <connect-page if={ shown }>
   <div class="body">
     <h1>Recent Notebooks</h1>

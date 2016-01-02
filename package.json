@@ -1,7 +1,7 @@
 {
   "name": "juno",
   "version": "0.1.0",
-  "description": "View Jupyter notebooks as a desktop application",
+  "description": "Give your Jupyter notebooks a window of their own",
   "main": "main.js",
   "scripts": {
     "start": "electron main.js",

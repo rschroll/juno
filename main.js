@@ -1,3 +1,12 @@
+/* Copyright 2015-2016 Robert Schroll
+ *
+ * This file is part of Juno and is distributed under the terms of the
+ * BSD license. See the file LICENSE for full details.
+ *
+ * This file derives from the Electron Quick STart example
+ * (https://github.com/atom/electron-quick-start), which is in the
+ * public domain.
+ */
 'use strict';
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
