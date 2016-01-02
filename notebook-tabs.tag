@@ -104,12 +104,12 @@
       let header = document.createElement("li");
       let icon = document.createElement("img");
       header.appendChild(icon);
-      let title = document.createElement("span");
-      header.appendChild(title);
       let close = document.createElement("i");
       close.classList.add("fa");
       close.classList.add("fa-times");
       header.appendChild(close);
+      let title = document.createElement("span");
+      header.appendChild(title);
       self.headers.appendChild(header);
       
       let startStatus = 0;  // 1 when "Starting", 2 afterwards
@@ -269,18 +269,38 @@
     
     ul {
       position: absolute;
+      display: flex;
       left: 0;
       right: 0;
       top: 0;
       height: 2em;
       margin: 0;
       padding-left: 0;
-      padding-top: 0.5em;
-      overflow: visible;
+      overflow-x: scroll;
+      overflow-y: hidden;
       background-color: #ddd;
-      border-bottom: thin solid #aaa;
       box-sizing: border-box;
+      transform: rotateX(180deg);  /* Put the scrollbar at the top. */
     }
+    ul > * {
+      transform: rotateX(180deg);  /* Restore everything to right-side up. */
+    }
+    ul::after {
+      content: "";
+      flex-grow: 1;
+      border-top: thin solid #aaa;
+    }
+    ul::-webkit-scrollbar {
+      height: 0.5em;
+    }
+    ul::-webkit-scrollbar-thumb {
+      border-radius: 0.125em;
+      background: transparent;
+    }
+    ul:hover::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+    }
+    
     li {
       display: inline-block;
       height: 1.5em;
@@ -290,6 +310,11 @@
       border: thin solid #aaa;
       border-radius: 0.5em 0.5em 0 0;
       box-sizing: border-box;
+      min-width: 6.5em;  /* Necessary to make flex shrink this below intrinsic width. */
+      /* Ellipsize excess text */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     li.focused {
       background-color: #fff;
@@ -320,6 +345,11 @@
     li i {
       border: thin solid rgba(0,0,0,0);
       border-radius: 0.2em;
+      float: right;
+      position: relative; /* Necessary for z-index. */
+      z-index: 1;
+      line-height: 1em;
+      margin-top: 0.2em;
     }
     li i:hover {
       border: thin solid #ccc;
