@@ -50,12 +50,6 @@ it][4].  Since Juno is only acting as a window to the Jupyter server, it
 shouldn't be capable of causing any data loss.  You should probably be
 aware of these issues:
 
-- Juno ignores SSL errors when connecting to secure servers.  This is
-because self-signed certificates (which are common on such servers)
-generate an error that should be ignored.  Unfortunately, this permits
-man-in-the-middle attacks.  Be careful until we work out the proper
-solution to this problem.
-
 - Closing the a notebook's tab will stop the kernel associated with that
 notebook.  This is *probably* what you want to happen, but it may
 surprise you when connecting to an running server with notebooks open in

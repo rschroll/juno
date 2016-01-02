@@ -18,8 +18,6 @@ const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
 
-app.commandLine.appendSwitch('ignore-certificate-errors')
-
 // Report crashes to our server.
 electron.crashReporter.start();
 
@@ -33,6 +31,42 @@ app.on('window-all-closed', function() {
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform != 'darwin') {
     app.quit();
+  }
+});
+
+app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
+  let buttons = ["Continue", "Abort"];
+  let window = BrowserWindow.fromWebContents(webContents);
+  let host = url.match(/[a-z]*:\/\/[^\/]*/)[0];
+  let details =  + (error == "net::ERR_CERT_AUTHORITY_INVALID") ?
+    "If you were expecting a self-signed certificate, this is probably a false alarm." :
+    "This may be a sign of a man-in-the-middle attack.";
+  let message = `Juno encountered a certificate error when connecting to ${host}, for a certificate claiming to be issued by ${certificate.issuerName}.  The error was
+
+${error}
+
+${details}`;
+  
+  let response = dialog.showMessageBox(window, {
+    "type": "warning",
+    "buttons": buttons,
+    "title": "Certificate Error",
+    "message": "Certificate Error",
+    "detail": message,
+    "cancelId": buttons.indexOf("Abort")
+  });
+  if (buttons[response] == "Continue") {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+    webContents.send("set-host", null, null);
+    for (let i in windows) {
+      if (windows[i].window == window) {
+        windows[i].host = null;
+        windows[i].path = null;
+      }
+    }
   }
 });
 
