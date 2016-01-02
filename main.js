@@ -34,10 +34,19 @@ app.on('window-all-closed', function() {
   }
 });
 
+let certificates = {};
 app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
+  let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
+  let certText = certificate.data.toString();
+  if (certificates[host] == certText) {
+    event.preventDefault();
+    callback(true);
+    return;
+  }
+  
+  console.log(url);
   let buttons = ["Continue", "Abort"];
   let window = BrowserWindow.fromWebContents(webContents);
-  let host = url.match(/[a-z]*:\/\/[^\/]*/)[0];
   let details =  + (error == "net::ERR_CERT_AUTHORITY_INVALID") ?
     "If you were expecting a self-signed certificate, this is probably a false alarm." :
     "This may be a sign of a man-in-the-middle attack.";
@@ -58,6 +67,7 @@ ${details}`;
   if (buttons[response] == "Continue") {
     event.preventDefault();
     callback(true);
+    certificates[host] = certText;
   } else {
     callback(false);
     webContents.send("set-host", null, null);
