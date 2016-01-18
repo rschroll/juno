@@ -69,6 +69,20 @@ BSD license. See the file LICENSE for full details.
       var login = riot.mount("login-view")[0];
       var connect = riot.mount("connect-page")[0];
       
+      function saveAndOpen(data, fn) {
+        let path = require("path");
+        let fs = require("fs");
+        let filename = path.parse(fn);
+        let fns = path.join("/tmp", filename.base);
+        let i = 0;
+        while (fs.existsSync(fns)) {
+          fns = path.join("/tmp", filename.name + i + filename.ext);
+          i += 1;
+        }
+        fs.writeFileSync(fns, data);
+        require("electron").shell.openItem(fns);
+      }
+      
       function download(url) {
         let xhr = new XMLHttpRequest();
         xhr.open("GET", url);
@@ -82,22 +96,18 @@ BSD license. See the file LICENSE for full details.
             console.log("Error getting filename for " + url);
             return;
           }
-          
-          let path = require("path");
-          let filename = path.parse(fn);
-          let fns = path.join("/tmp", filename.base);
-          let i = 0;
-          while (fs.existsSync(fns)) {
-            fns = path.join("/tmp", filename.name + i + filename.ext);
-            i += 1;
-          }
-          require("fs").writeFileSync(fns, xhr.responseText);
-          require("electron").shell.openItem(fns);
+          saveAndOpen(xhr.responseText, fn);
         });
         xhr.addEventListener("error", function (event) {
           console.log("Error downloading " + url);
         });
         xhr.send();
+      }
+      
+      function openData(dataUrl) {
+        let data = dataUrl.split(";")[1].split(",");
+        let buf = new Buffer(data[1], data[0]);
+        saveAndOpen(buf, 'jupyter-data');
       }
       
       riot.host = undefined;
@@ -111,6 +121,8 @@ BSD license. See the file LICENSE for full details.
         
         if (url.slice(0, riot.host.length) == riot.host)
           return tabs.openNotebook(url);
+        if (url.slice(0, 4) == "data")
+          return openData(url);
         require("electron").shell.openExternal(url);
       }
       riot.login = function (url, callback) {
