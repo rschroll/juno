@@ -42,6 +42,7 @@
     var NEW_NOTEBOOK = "X-New-Notebook: ";
     var KERNEL_LOGO = "X-Kernel-Logo: ";
     var CLOSE = "X-Close";
+    var LOAD_URL = "X-Load-Url: "
     var CLIENT_JS_NOTEBOOK = `
       (function () {
         var old_setter = IPython.save_widget.set_save_status;
@@ -73,6 +74,22 @@
         }
         
         console.log('${KERNEL_LOGO}' + document.querySelector(".current_kernel_logo").src);
+        
+        var old_window_open = window.open;
+        window.open = function (url, name, features) {
+          if (url == '') {
+            var window_standin = {
+              set location(loc) {
+                if (loc[0] = '/')
+                  loc = window.location.origin + loc;
+                console.log('${LOAD_URL}' + loc);
+              }
+            };
+            return window_standin;
+          } else {
+            return old_window_open(url, name, features);
+          }
+        }
         
         document.querySelector('#toggle_header').click();
       })();
@@ -170,6 +187,8 @@
           riot.newFile("notebook", args[1], args[0]);
         } else if (msg.slice(0, KERNEL_LOGO.length) == KERNEL_LOGO) {
           icon.src = msg.slice(KERNEL_LOGO.length);
+        } else if (msg.slice(0, LOAD_URL.length) == LOAD_URL) {
+          riot.openUrl(msg.slice(LOAD_URL.length));
         } else if (msg == CLOSE) {
           self.closeNotebook(nb);
         }
