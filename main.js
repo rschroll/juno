@@ -315,14 +315,6 @@ app.on('ready', function() {
             if(focusedWindow)
               focusedWindow.webContents.toggleDevTools();
           }
-        },
-        {
-          label: "Toggle Developer Tools for Current Notebook",
-          accelerator: "Alt+Shift+I",
-          click: function(item, focusedWindow) {
-            if (focusedWindow)
-              focusedWindow.webContents.send('toggle-dev-tools');
-          }
         }
       ]
     }
