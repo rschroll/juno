@@ -134,7 +134,7 @@ function openConnectDialog() {
     }
   }
 
-  let window = createWindow();
+  let window = createWindow(true);
   window.host = 'open-dialog';
   window.window.loadURL(`file://${__dirname}/connect.html`);
 
@@ -201,16 +201,16 @@ function openNotebook(resource) {
 
   let window = createWindow();
 
-  function setHost(host, path) {
+  function setHost(host, url) {
     window.host = host;
     // window.path set earlier, since we want that done ASAP
-    window.window.loadURL(host);
+    window.window.loadURL(url);
     // We have to delay this to here, to avoid a crash.  (Don't know why.)
     closeConnectDialog(resource);
   }
 
   // If the window doesn't have the notebook open, open it.
-  if (localPath && !window.path) {
+  if (localPath) {
     console.log("Opening notebook server in " + localPath);
     window.path = localPath;
     let urlFound = false;
@@ -220,10 +220,10 @@ function openNotebook(resource) {
     proc.stderr.on('data', function (data) {
       console.log("Server:", data.toString());
       if (!urlFound) {
-        let url = data.toString().match(/https?:\/\/localhost:[0-9]*\//);
+        let url = data.toString().match(/(https?:\/\/localhost:[0-9]*\/)\S*/);
         if (url) {
           urlFound = true;
-          setHost(url[0], localPath);
+          setHost(url[1], url[0]);
         }
       }
     });
@@ -231,8 +231,8 @@ function openNotebook(resource) {
       console.log("Server process ended.");
       window.server = null;
     });
-  } else if (!window.host) {
-    setHost(host, localPath);
+  } else {
+    setHost(host, host);
   }
 
   // Focus the window.
@@ -240,10 +240,14 @@ function openNotebook(resource) {
   return true;
 }
 
-function createWindow() {
+function createWindow(nodeIntegration) {
   // Create the browser window.
   let window = {
-    "window": new BrowserWindow({width: 800, height: 600}),
+    "window": new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {nodeIntegration: nodeIntegration ? true : false}
+    }),
     "host": null,
     "path": null,
     "server": null
@@ -264,6 +268,29 @@ function createWindow() {
     else
       console.log("Couldn't find that window!");
   });
+
+  if (!nodeIntegration) {
+    // The JupyterLab page will block closing with a beforeunload handler.  Electron
+    // doesn't handle this well; see https://github.com/electron/electron/issues/2579
+    window.window.on('close', function() {
+      let buttons = ["Cancel", "Close", ];
+      let message = "Closing the window will discard any unsaved changes.";
+      if (window.server)
+        message = message.slice(0, -1) + " and close the Jupyter server."
+
+      let response = dialog.showMessageBox(window.window, {
+        "type": "question",
+        "buttons": buttons,
+        "title": "Close Window",
+        "message": "Close Window?",
+        "detail": message,
+        "cancelId": buttons.indexOf("Cancel"),
+        "defaultId": buttons.indexOf("Close")
+      });
+      if (buttons[response] == "Close")
+        window.window.destroy();
+    });
+  }
 
   windows.push(window);
   return window;
