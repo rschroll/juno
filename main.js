@@ -36,6 +36,7 @@ function loadSettings() {
   }
   return {
     sources: settings.sources || [],
+    windows: settings.windows || {},
   }
 }
 global.settings = loadSettings();
@@ -134,7 +135,7 @@ function openConnectDialog() {
     }
   }
 
-  let window = createWindow(true);
+  let window = createWindow('open-dialog');
   window.host = 'open-dialog';
   window.window.loadURL(`file://${__dirname}/connect.html`);
 
@@ -199,7 +200,7 @@ function openNotebook(resource) {
     }
   }
 
-  let window = createWindow();
+  let window = createWindow(localPath || host);
 
   function setHost(host, url) {
     window.host = host;
@@ -240,14 +241,29 @@ function openNotebook(resource) {
   return true;
 }
 
-function createWindow(nodeIntegration) {
+function createWindow(source) {
+  let settings = {
+    width: 800,
+    height: 600,
+    x: null,
+    y: null,
+    webPreferences: {nodeIntegration: source == 'open-dialog' ? true : false}
+  }
+  let saved = global.settings.windows[source];
+  if (saved) {
+    if (saved.width)
+      settings.width = saved.width;
+    if (saved.height)
+      settings.height = saved.height;
+    if (saved.x !== null)
+      settings.x = saved.x;
+    if (saved.y !== null)
+      settings.y = saved.y;
+  }
+
   // Create the browser window.
   let window = {
-    "window": new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {nodeIntegration: nodeIntegration ? true : false}
-    }),
+    "window": new BrowserWindow(settings),
     "host": null,
     "path": null,
     "server": null
@@ -255,6 +271,21 @@ function createWindow(nodeIntegration) {
 
   // and load the index.html of the app.
   //window.window.loadURL(`file://${__dirname}/index.html`);
+
+  // Keep track of settings
+  function saveWindowSettings() {
+    let pos = window.window.getPosition();
+    let size = window.window.getSize();
+    global.settings.windows[source] = {
+      'x': pos[0],
+      'y': pos[1],
+      'width': size[0],
+      'height': size[1]
+    };
+    saveSettings();
+  }
+  window.window.on('resize', saveWindowSettings);
+  window.window.on('move', saveWindowSettings);
 
   // Emitted when the window is closed.
   window.window.on('closed', function() {
@@ -269,7 +300,7 @@ function createWindow(nodeIntegration) {
       console.log("Couldn't find that window!");
   });
 
-  if (!nodeIntegration) {
+  if (source != 'open-dialog') {
     // The JupyterLab page will block closing with a beforeunload handler.  Electron
     // doesn't handle this well; see https://github.com/electron/electron/issues/2579
     window.window.on('close', function() {
