@@ -4,8 +4,7 @@
   "description": "Give your Jupyter notebooks a window of their own",
   "main": "main.js",
   "scripts": {
-    "start": "electron main.js",
-    "prestart": "riot . tags.js"
+    "start": "electron main.js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +22,6 @@
   },
   "homepage": "https://github.com/rschroll/juno#readme",
   "devDependencies": {
-    "electron-prebuilt": "^0.35.0",
-    "riot": "~2.2.2"
+    "electron-prebuilt": "^0.35.0"
   }
 }

@@ -9,37 +9,131 @@ BSD license. See the file LICENSE for full details.
   <head>
     <meta charset="UTF-8">
     <title>Juno</title>
-    <script src="riot.js"></script>
     <style>
       body {
-        margin: 0;
-        font: menu;
-        -webkit-user-select: none;
-        cursor: default;
-      }
-
-      #main {
         position: fixed;
         left: 0;
         right: 0;
         top: 0;
         bottom: 0;
+        background-color: rgba(0,0,0,0.75);
+        font: menu;
+        -webkit-user-select: none;
+        cursor: default;
         display: flex;
-        align-items: stretch;
+        justify-content: space-around;
+        align-items: center;
+      }
+
+      .body {
+        padding: 1em;
+        background-color: #eee;
+        border-radius: 0.75em;
+      }
+
+      h1 {
+        font-size: 1.44em;
+        margin-top: 0;
+      }
+      h2 {
+        font-size: 1.2em;
+        margin-bottom: 0;
+      }
+
+      ul {
+        padding-left: 0;
+        list-style: none;
+        max-height: 10em;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+      li {
+        margin: 0.4em 0;
+      }
+      a {
+        text-decoration: none;
+        color: black;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      form:invalid input[type=submit]{
+        color: #999;
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background: rgba(0,0,0,0.1);
+      }
+      :hover::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+      }
+      ::-webkit-scrollbar-track {
+        border-radius: 4px;
+        background: rgba(0,0,0,0.1);
       }
     </style>
-  </head>
-  <body>
-    <connect-page></connect-page>
-    <script src="tags.js"></script>
     <script>
       'use strict';
-      var connect = riot.mount("connect-page")[0];
-
       var ipcRenderer = require("electron").ipcRenderer;
       ipcRenderer.on('set-sources', function (event, sources) {
-        connect.open(sources);
+        //connect.open(sources);
+        var ul = document.querySelector("#hosts");
+        for (var i in sources) {
+          var a = document.createElement('a');
+          a.href = sources[i];
+          a.appendChild(document.createTextNode(formatPath(sources[i])));
+          a.addEventListener("click", onClick(sources[i]));
+          var li = document.createElement('li');
+          li.appendChild(a);
+          ul.appendChild(li);
+        }
       });
+
+      function connect(host) {
+        ipcRenderer.send('open-host', host);
+      }
+
+      function onClick(host) {
+        return function(event) {
+          event.preventDefault();
+          connect(host);
+        }
+      }
+
+      function onHostSubmit(event) {
+        connect(document.querySelector("#host-input").value);
+      }
+
+      function onDirectory(event) {
+        ipcRenderer.send('open-dialog');
+      }
+
+      function formatPath(path) {
+        let home = require("electron").remote.app.getPath("home");
+        if (path.slice(0, home.length) == home)
+          return "~" + path.slice(home.length, path.length);
+        return path;
+      }
     </script>
+  </head>
+  <body>
+    <div class="body">
+      <h1>Recent Notebooks</h1>
+      <ul id="hosts"></ul>
+      <h2>Open local notebook</h2>
+      <form>
+        <input type="button" value="Open Directory" onclick="onDirectory(event)" />
+      </form>
+      <h2>Connect to server</h2>
+      <form id="host-form" onsubmit="onHostSubmit(event)">
+        <input type="url" id="host-input" placeholder="http://localhost:8888" required />
+        <input type="submit" value="Connect" />
+      </form>
+    </div>
   </body>
 </html>
