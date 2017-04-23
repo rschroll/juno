@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+Copyright 2015-2016 Robert Schroll
+
+This file is part of Juno and is distributed under the terms of the
+BSD license. See the file LICENSE for full details.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Juno</title>
+    <script src="riot.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font: menu;
+        -webkit-user-select: none;
+        cursor: default;
+      }
+
+      #main {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        display: flex;
+        align-items: stretch;
+      }
+    </style>
+  </head>
+  <body>
+    <connect-page></connect-page>
+    <script src="tags.js"></script>
+    <script>
+      'use strict';
+      var connect = riot.mount("connect-page")[0];
+
+      var ipcRenderer = require("electron").ipcRenderer;
+      ipcRenderer.on('set-sources', function (event, sources) {
+        connect.open(sources);
+      });
+    </script>
+  </body>
+</html>

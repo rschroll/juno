@@ -18,6 +18,36 @@ const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
 
+let configFile = null;
+try {
+  configFile = path.join(app.getPath('userData'), 'config.json')
+} catch (err) {
+  console.log(err);
+}
+
+function loadSettings() {
+  let settings = {};
+  if (configFile) {
+    try {
+      settings = JSON.parse(fs.readFileSync(configFile));
+    } catch (err) {
+      // pass
+    }
+  }
+  return {
+    sources: settings.sources || [],
+  }
+}
+global.settings = loadSettings();
+
+function saveSettings() {
+  if (configFile)
+    fs.writeFile(configFile, JSON.stringify(global.settings), function (err) {
+      if (err)
+        console.log(err);
+    });
+}
+
 // Report crashes to our server.
 electron.crashReporter.start();
 
@@ -43,7 +73,7 @@ app.on('certificate-error', function(event, webContents, url, error, certificate
     callback(true);
     return;
   }
-  
+
   console.log(url);
   let buttons = ["Continue", "Abort"];
   let window = BrowserWindow.fromWebContents(webContents);
@@ -55,7 +85,7 @@ app.on('certificate-error', function(event, webContents, url, error, certificate
 ${error}
 
 ${details}`;
-  
+
   let response = dialog.showMessageBox(window, {
     "type": "warning",
     "buttons": buttons,
@@ -88,72 +118,99 @@ ipcMain.on('open-dialog', function (event) {
   openDialog(BrowserWindow.fromWebContents(event.sender));
 });
 
+function openConnectDialog() {
+  for (let i in windows) {
+    let win = windows[i];
+    if (win.host == 'open-dialog') {
+      win.window.show();
+      return true;
+    }
+  }
+
+  let window = createWindow();
+  window.host = 'open-dialog';
+  window.window.loadURL(`file://${__dirname}/connect.html`);
+
+  let webContents = window.window.webContents;
+  function sendToClient() {
+    webContents.send('set-sources', global.settings.sources);
+  }
+  if (webContents.isLoading())
+    webContents.on('did-finish-load', sendToClient);
+  else
+    sendToClient();
+
+  return true;
+}
+
+function closeConnectDialog(source) {
+  let index = global.settings.sources.indexOf(source);
+  if (index != -1)
+    global.settings.sources.splice(index, 1);
+  global.settings.sources.splice(0, 0, source);
+  saveSettings();
+
+  for (let i in windows) {
+    let win = windows[i];
+    if (win.host == 'open-dialog') {
+      win.window.close();
+      return;
+    }
+  }
+}
+
 function openNotebook(resource) {
   let host = resource;
   let localPath = null;
-  
-  if (resource) {
-    // Check if the resource is a path, not a URL
-    if (resource.indexOf("://") == -1) {
-      let info;
-      localPath = path.resolve(resource);
-      host = null;
-      try {
-        info = fs.statSync(localPath);
-      } catch (e) {
-        console.log("Could not stat path: " + localPath);
-        return false;
-      }
-      if (!info.isDirectory())
-        localPath = path.dirname(localPath);  // TODO: Save filename and open it in notebook
-    } else {
-      // Normalize trailing slash
-      if (host.slice(-1) != "/")
-        host += "/";
+
+  if (!resource)
+    return openConnectDialog();
+
+  closeConnectDialog(resource);
+
+  // Check if the resource is a path, not a URL
+  if (resource.indexOf("://") == -1) {
+    let info;
+    localPath = path.resolve(resource);
+    host = null;
+    try {
+      info = fs.statSync(localPath);
+    } catch (e) {
+      console.log("Could not stat path: " + localPath);
+      return false;
     }
+    if (!info.isDirectory())
+      localPath = path.dirname(localPath);  // TODO: Save filename and open it in notebook
+  } else {
+    // Normalize trailing slash
+    if (host.slice(-1) != "/")
+      host += "/";
   }
-  
+
   // See if any existing window matches the host or path, whichever is requested
-  let window = null;
-  let empty = null;
   for (let i in windows) {
     let win = windows[i];
     if (host && host == win.host || localPath && localPath == win.path) {
-      window = win;
-      break;
+      // Focus the window
+      win.window.show();
+      return true;
     }
-    if (!win.host && !win.path)
-      empty = win;
   }
-  
-  // If we didn't find an appropriate window, see if there are any windows that aren't
-  // displaying notebooks, and use that.
-  if (!window)
-    window = empty;
-  // And if not, create a new window.
-  if (!window)
-    window = createWindow();
-  
+
+  let window = createWindow();
+
   function setHost(host, path) {
     window.host = host;
     // window.path set earlier, since we want that done ASAP
-    
-    let webContents = window.window.webContents;
-    function sendToClient() {
-      webContents.send('set-host', host, path);
-    }
-    if (webContents.isLoading())
-      webContents.on('did-finish-load', sendToClient);
-    else
-      sendToClient();
+    window.window.loadURL(host);
   }
-  
+
   // If the window doesn't have the notebook open, open it.
   if (localPath && !window.path) {
     console.log("Opening notebook server in " + localPath);
     window.path = localPath;
     let urlFound = false;
-    let proc = spawn('jupyter', ['notebook', '--no-browser'], {'cwd': localPath});
+    let proc = spawn('jupyter', ['lab', '--no-browser'], {'cwd': localPath});
     window.server = proc;
     proc.stdout.on('data', function (data) { console.log("Stdout:", data.toString()); });
     proc.stderr.on('data', function (data) {
@@ -173,7 +230,7 @@ function openNotebook(resource) {
   } else if (!window.host) {
     setHost(host, localPath);
   }
-  
+
   // Focus the window.
   window.window.show();
   return true;
@@ -189,13 +246,13 @@ function createWindow() {
   };
 
   // and load the index.html of the app.
-  window.window.loadURL(`file://${__dirname}/index.html`);
+  //window.window.loadURL(`file://${__dirname}/index.html`);
 
   // Emitted when the window is closed.
   window.window.on('closed', function() {
     if (window.server)
       window.server.kill()
-    
+
     // Dereference the window object.
     let index = windows.indexOf(window);
     if (index != -1)
@@ -203,7 +260,7 @@ function createWindow() {
     else
       console.log("Couldn't find that window!");
   });
-  
+
   windows.push(window);
   return window;
 }
@@ -270,7 +327,7 @@ app.on('ready', function() {
     }
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-  
+
   let host = process.argv[2];
   if (!openNotebook(host)) {
     console.log("Error: Could not open notebook", host);

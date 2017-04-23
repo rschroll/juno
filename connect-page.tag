@@ -7,7 +7,7 @@
   <div class="body">
     <h1>Recent Notebooks</h1>
     <ul id="hosts">
-      <li each={ hosts }><a href={ host } onclick={ parent.onClick }>{ riot.formatPath(host) }</a></li>
+      <li each={ hosts }><a href={ host } onclick={ parent.onClick }>{ formatPath(host) }</a></li>
     </ul>
     <h2>Open local notebook</h2>
     <form>
@@ -24,45 +24,46 @@
   <script>
     'use strict';
     var self = this;
-    
+
     self.shown = false;
     self.hosts = [];
-    
+
     function connect(host) {
       require("electron").ipcRenderer.send('open-host', host);
     }
-    
+
     onClick(event) {
       connect(event.item.host);
     }
-    
+
     onHostSubmit(event) {
       connect(document.querySelector("#host-input").value);
     }
-    
+
     onDirectory(event) {
       require("electron").ipcRenderer.send('open-dialog');
     }
-    
-    open() {
-      let hostlist = [];
-      try {
-        hostlist = JSON.parse(localStorage.recentHosts);
-      } catch (e) {
-        // pass
-      }
+
+    formatPath(path) {
+      let home = require("electron").remote.app.getPath("home");
+      if (path.slice(0, home.length) == home)
+        return "~" + path.slice(home.length, path.length);
+      return path;
+    }
+
+    open(hostlist) {
       let hosts = [];
       for (let i in hostlist)
         hosts.push({"host": hostlist[i]});
-      
+
       self.update({"hosts": hosts, "shown": true});
     }
-    
+
     close() {
       self.update({"shown": false});
     }
   </script>
-  
+
   <style scoped>
     :scope {
       position: fixed;
@@ -75,13 +76,13 @@
       justify-content: space-around;
       align-items: center;
     }
-    
+
     .body {
       padding: 1em;
       background-color: #eee;
       border-radius: 0.75em;
     }
-    
+
     h1 {
       font-size: 1.44em;
       margin-top: 0;
@@ -90,7 +91,7 @@
       font-size: 1.2em;
       margin-bottom: 0;
     }
-    
+
     ul {
       padding-left: 0;
       list-style: none;
@@ -108,11 +109,11 @@
     a:hover {
       text-decoration: underline;
     }
-    
+
     form:invalid input[type=submit]{
       color: #999;
     }
-    
+
     ::-webkit-scrollbar {
       width: 8px;
     }
