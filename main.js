@@ -118,6 +118,13 @@ ipcMain.on('open-dialog', function (event) {
   openDialog(BrowserWindow.fromWebContents(event.sender));
 });
 
+function runOnceLoaded(webContents, func) {
+  if (webContents.isLoading())
+    webContents.on('did-finish-load', func);
+  else
+    func();
+}
+
 function openConnectDialog() {
   for (let i in windows) {
     let win = windows[i];
@@ -132,13 +139,9 @@ function openConnectDialog() {
   window.window.loadURL(`file://${__dirname}/connect.html`);
 
   let webContents = window.window.webContents;
-  function sendToClient() {
+  runOnceLoaded(webContents, function () {
     webContents.send('set-sources', global.settings.sources);
-  }
-  if (webContents.isLoading())
-    webContents.on('did-finish-load', sendToClient);
-  else
-    sendToClient();
+  });
 
   return true;
 }
