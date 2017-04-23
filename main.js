@@ -49,7 +49,7 @@ function saveSettings() {
 }
 
 // Report crashes to our server.
-electron.crashReporter.start();
+//electron.crashReporter.start();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -166,8 +166,6 @@ function openNotebook(resource) {
   if (!resource)
     return openConnectDialog();
 
-  closeConnectDialog(resource);
-
   // Check if the resource is a path, not a URL
   if (resource.indexOf("://") == -1) {
     let info;
@@ -193,6 +191,7 @@ function openNotebook(resource) {
     if (host && host == win.host || localPath && localPath == win.path) {
       // Focus the window
       win.window.show();
+      closeConnectDialog(resource);
       return true;
     }
   }
@@ -203,6 +202,8 @@ function openNotebook(resource) {
     window.host = host;
     // window.path set earlier, since we want that done ASAP
     window.window.loadURL(host);
+    // We have to delay this to here, to avoid a crash.  (Don't know why.)
+    closeConnectDialog(resource);
   }
 
   // If the window doesn't have the notebook open, open it.

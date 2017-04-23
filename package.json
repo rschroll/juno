@@ -22,6 +22,6 @@
   },
   "homepage": "https://github.com/rschroll/juno#readme",
   "devDependencies": {
-    "electron-prebuilt": "^0.35.0"
+    "electron": "1.6.5"
   }
 }
