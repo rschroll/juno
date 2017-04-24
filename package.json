@@ -1,6 +1,6 @@
 {
   "name": "juno",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Give your Jupyter notebooks a window of their own",
   "main": "main.js",
   "scripts": {
