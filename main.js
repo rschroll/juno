@@ -37,6 +37,7 @@ function loadSettings() {
   return {
     sources: settings.sources || [],
     windows: settings.windows || {},
+    certificates: settings.certificates || {},
   }
 }
 global.settings = loadSettings();
@@ -65,11 +66,10 @@ app.on('window-all-closed', function() {
   }
 });
 
-let certificates = {};
 app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
   let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
   let certText = certificate.data.toString();
-  if (certificates[host] == certText) {
+  if (global.settings.certificates[host] == certText) {
     event.preventDefault();
     callback(true);
     return;
@@ -98,7 +98,8 @@ ${details}`;
   if (buttons[response] == "Continue") {
     event.preventDefault();
     callback(true);
-    certificates[host] = certText;
+    global.settings.certificates[host] = certText;
+    saveSettings();
   } else {
     callback(false);
     webContents.send("set-host", null, null);
