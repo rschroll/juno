@@ -44,7 +44,7 @@ global.settings = loadSettings();
 
 function saveSettings() {
   if (configFile)
-    fs.writeFile(configFile, JSON.stringify(global.settings), function (err) {
+    fs.writeFile(configFile, JSON.stringify(global.settings, null, '  '), function (err) {
       if (err)
         console.log(err);
     });
