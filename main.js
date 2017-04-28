@@ -103,12 +103,8 @@ ${details}`;
   } else {
     callback(false);
     webContents.send("set-host", null, null);
-    for (let i in windows) {
-      if (windows[i].window == window) {
-        windows[i].host = null;
-        windows[i].path = null;
-      }
-    }
+    window.host = null;
+    window.path = null;
   }
 });
 
@@ -129,18 +125,18 @@ function runOnceLoaded(webContents, func) {
 
 function openConnectDialog() {
   for (let i in windows) {
-    let win = windows[i];
-    if (win.host == 'open-dialog') {
-      win.window.show();
+    let window = windows[i];
+    if (window.host == 'open-dialog') {
+      window.show();
       return true;
     }
   }
 
   let window = createWindow('open-dialog');
   window.host = 'open-dialog';
-  window.window.loadURL(`file://${__dirname}/connect.html`);
+  window.loadURL(`file://${__dirname}/connect.html`);
 
-  let webContents = window.window.webContents;
+  let webContents = window.webContents;
   runOnceLoaded(webContents, function () {
     webContents.send('set-sources', global.settings.sources);
   });
@@ -156,9 +152,9 @@ function closeConnectDialog(source) {
   saveSettings();
 
   for (let i in windows) {
-    let win = windows[i];
-    if (win.host == 'open-dialog') {
-      win.window.close();
+    let window = windows[i];
+    if (window.host == 'open-dialog') {
+      window.close();
       return;
     }
   }
@@ -192,10 +188,10 @@ function openNotebook(resource) {
 
   // See if any existing window matches the host or path, whichever is requested
   for (let i in windows) {
-    let win = windows[i];
-    if (host && host == win.host || localPath && localPath == win.path) {
+    let window = windows[i];
+    if (host && host == window.host || localPath && localPath == window.path) {
       // Focus the window
-      win.window.show();
+      window.show();
       closeConnectDialog(resource);
       return true;
     }
@@ -206,7 +202,7 @@ function openNotebook(resource) {
   function setHost(host, url) {
     window.host = host;
     // window.path set earlier, since we want that done ASAP
-    window.window.loadURL(url);
+    window.loadURL(url);
     // We have to delay this to here, to avoid a crash.  (Don't know why.)
     closeConnectDialog(resource);
   }
@@ -238,7 +234,7 @@ function openNotebook(resource) {
   }
 
   // Focus the window.
-  window.window.show();
+  window.show();
   return true;
 }
 
@@ -263,20 +259,18 @@ function createWindow(source) {
   }
 
   // Create the browser window.
-  let window = {
-    "window": new BrowserWindow(settings),
-    "host": null,
-    "path": null,
-    "server": null
-  };
+  let window = new BrowserWindow(settings);
+  window.host = null;
+  window.path = null;
+  window.server = null;
 
   // and load the index.html of the app.
-  //window.window.loadURL(`file://${__dirname}/index.html`);
+  //window.loadURL(`file://${__dirname}/index.html`);
 
   // Keep track of settings
   function saveWindowSettings() {
-    let pos = window.window.getPosition();
-    let size = window.window.getSize();
+    let pos = window.getPosition();
+    let size = window.getSize();
     global.settings.windows[source] = {
       'x': pos[0],
       'y': pos[1],
@@ -285,11 +279,11 @@ function createWindow(source) {
     };
     saveSettings();
   }
-  window.window.on('resize', saveWindowSettings);
-  window.window.on('move', saveWindowSettings);
+  window.on('resize', saveWindowSettings);
+  window.on('move', saveWindowSettings);
 
   // Emitted when the window is closed.
-  window.window.on('closed', function() {
+  window.on('closed', function() {
     if (window.server)
       window.server.kill()
 
@@ -304,13 +298,13 @@ function createWindow(source) {
   if (source != 'open-dialog') {
     // The JupyterLab page will block closing with a beforeunload handler.  Electron
     // doesn't handle this well; see https://github.com/electron/electron/issues/2579
-    window.window.on('close', function() {
+    window.on('close', function() {
       let buttons = ["Cancel", "Close", ];
       let message = "Closing the window will discard any unsaved changes.";
       if (window.server)
         message = message.slice(0, -1) + " and close the Jupyter server."
 
-      let response = dialog.showMessageBox(window.window, {
+      let response = dialog.showMessageBox(window, {
         "type": "question",
         "buttons": buttons,
         "title": "Close Window",
@@ -320,7 +314,7 @@ function createWindow(source) {
         "defaultId": buttons.indexOf("Close")
       });
       if (buttons[response] == "Close")
-        window.window.destroy();
+        window.destroy();
     });
   }
 
