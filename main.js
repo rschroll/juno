@@ -279,7 +279,7 @@ function openDialog(parent) {
 
 /***** Application event handlers *****/
 // Quit when all windows are closed.
-app.on('window-all-closed', function() {
+app.on('window-all-closed', () => {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform != 'darwin') {
@@ -287,7 +287,7 @@ app.on('window-all-closed', function() {
   }
 });
 
-app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
   let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
   let certText = certificate.data.toString();
   if (settings.certificates[host] == certText) {
@@ -337,7 +337,7 @@ ipcMain.on('open-dialog', function (event) {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.on('ready', function() {
+app.on('ready', () => {
   let template = [
     {
       label: "File",
@@ -345,16 +345,12 @@ app.on('ready', function() {
         {
           label: "New Window",
           accelerator: "CmdOrCtrl+N",
-          click: function(item, focusedWindow) {
-            openConnectDialog();
-          }
+          click: (item, focusedWindow) => openConnectDialog()
         },
         {
           label: "Open Directory",
           accelerator: "CmdOrCtrl+O",
-          click: function(item, focusedWindow) {
-            openDialog();
-          }
+          click: (item, focusedWindow) => openDialog()
         }
       ]
     },
@@ -364,18 +360,12 @@ app.on('ready', function() {
         {
           label: "Reload",
           accelerator: "CmdOrCtrl+R",
-          click: function(item, focusedWindow) {
-            if (focusedWindow)
-              focusedWindow.reload();
-          }
+          click: (item, focusedWindow) => focusedWindow && focusedWindow.reload()
         },
         {
           label: "Toggle Developer Tools",
           accelerator: "CmdOrCtrl+Shift+I",
-          click: function(item, focusedWindow) {
-            if(focusedWindow)
-              focusedWindow.webContents.toggleDevTools();
-          }
+          click: (item, focusedWindow) => focusedWindow && focusedWindow.webContents.toggleDevTools()
         }
       ]
     }

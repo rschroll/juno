@@ -99,7 +99,7 @@ BSD license. See the file LICENSE for full details.
       }
 
       function onClick(host) {
-        return function(event) {
+        return (event) => {
           event.preventDefault();
           connect(host);
         }
