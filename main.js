@@ -80,12 +80,58 @@ let settings = {
 };
 settings.load();
 
-// Report crashes to our server.
-//electron.crashReporter.start();
-
-// Keep a global reference of the window object, if you don't, the window will
+// Keep a global reference of the window objects, if you don't, the windows will
 // be closed automatically when the JavaScript object is garbage collected.
-let windows = [];
+let windows = {
+  list: [],
+
+  new(settings) {
+    let window = new BrowserWindow(settings);
+    window.host = null;
+    window.path = null;
+    window.server = null;
+    window.on('closed', () => this.remove(window));
+    this.list.push(window);
+
+    return window
+  },
+
+  remove(window) {
+    let index = this.list.indexOf(window);
+    if (index != -1)
+      this.list.splice(index, 1);
+    else
+      console.log("Couldn't find that window!");
+  },
+
+  findWindow(host, path) {
+    for (let i in this.list) {
+      let window = this.list[i];
+      if (host && host == window.host || path && path == window.path) {
+        return window;
+      }
+    }
+    return null;
+  },
+
+  focusWindow(host, path) {
+    let window = this.findWindow(host, path);
+    if (window) {
+      window.show();
+      return true;
+    }
+    return false
+  },
+
+  closeWindow(host, path) {
+    let window = this.findWindow(host, path);
+    if (window) {
+      window.close();
+      return true;
+    }
+    return false;
+  },
+};
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -153,13 +199,8 @@ function runOnceLoaded(webContents, func) {
 }
 
 function openConnectDialog() {
-  for (let i in windows) {
-    let window = windows[i];
-    if (window.host == 'open-dialog') {
-      window.show();
-      return true;
-    }
-  }
+  if (windows.focusWindow('open-dialog'))
+    return true;
 
   let window = createWindow('open-dialog');
   window.host = 'open-dialog';
@@ -176,13 +217,7 @@ function openConnectDialog() {
 function closeConnectDialog(source) {
   settings.updateSources(source);
 
-  for (let i in windows) {
-    let window = windows[i];
-    if (window.host == 'open-dialog') {
-      window.close();
-      return;
-    }
-  }
+  windows.closeWindow('open-dialog');
 }
 
 function openNotebook(resource) {
@@ -212,14 +247,9 @@ function openNotebook(resource) {
   }
 
   // See if any existing window matches the host or path, whichever is requested
-  for (let i in windows) {
-    let window = windows[i];
-    if (host && host == window.host || localPath && localPath == window.path) {
-      // Focus the window
-      window.show();
-      closeConnectDialog(resource);
-      return true;
-    }
+  if (windows.focusWindow(host, localPath)) {
+    closeConnectDialog(resource);
+    return true;
   }
 
   let window = createWindow(localPath || host);
@@ -270,10 +300,7 @@ function createWindow(source) {
   };
 
   // Create the browser window.
-  let window = new BrowserWindow(winSettings);
-  window.host = null;
-  window.path = null;
-  window.server = null;
+  let window = windows.new(winSettings);
 
   // and load the index.html of the app.
   //window.loadURL(`file://${__dirname}/index.html`);
@@ -296,13 +323,6 @@ function createWindow(source) {
   window.on('closed', function() {
     if (window.server)
       window.server.kill()
-
-    // Dereference the window object.
-    let index = windows.indexOf(window);
-    if (index != -1)
-      windows.splice(index, 1);
-    else
-      console.log("Couldn't find that window!");
   });
 
   if (source != 'open-dialog') {
@@ -328,7 +348,6 @@ function createWindow(source) {
     });
   }
 
-  windows.push(window);
   return window;
 }
 
