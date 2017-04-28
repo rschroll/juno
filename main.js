@@ -17,6 +17,7 @@ const dialog = electron.dialog;
 const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
+const process = require('process');
 
 /***** Settings *****/
 let settings = {
@@ -87,10 +88,9 @@ settings.load();
 let windows = {
   list: [],
 
-  new(settings) {
+  new(resource, settings) {
     let window = new BrowserWindow(settings);
-    window.host = null;
-    window.path = null;
+    window.resource = resource;
     window.server = null;
     window.on('closed', () => this.remove(window));
     this.list.push(window);
@@ -106,18 +106,18 @@ let windows = {
       console.log("Couldn't find that window!");
   },
 
-  findWindow(host, path) {
+  findWindow(resource) {
     for (let i in this.list) {
       let window = this.list[i];
-      if (host && host == window.host || path && path == window.path) {
+      if (resource == window.resource) {
         return window;
       }
     }
     return null;
   },
 
-  focusWindow(host, path) {
-    let window = this.findWindow(host, path);
+  focusWindow(resource) {
+    let window = this.findWindow(resource);
     if (window) {
       window.show();
       return true;
@@ -125,8 +125,8 @@ let windows = {
     return false
   },
 
-  closeWindow(host, path) {
-    let window = this.findWindow(host, path);
+  closeWindow(resource) {
+    let window = this.findWindow(resource);
     if (window) {
       window.close();
       return true;
@@ -147,8 +147,8 @@ function openConnectDialog() {
   if (windows.focusWindow('open-dialog'))
     return true;
 
-  let window = createWindow('open-dialog');
-  window.host = 'open-dialog';
+  let window = windowWithSettings('open-dialog');
+  window.resource = 'open-dialog';
   window.loadURL(`file://${__dirname}/connect.html`);
 
   let webContents = window.webContents;
@@ -159,102 +159,104 @@ function openConnectDialog() {
   return true;
 }
 
-function closeConnectDialog(source) {
-  settings.updateSources(source);
-
+function closeConnectDialog() {
   windows.closeWindow('open-dialog');
 }
 
 function openNotebook(resource) {
-  let host = resource;
-  let localPath = null;
-
-  if (!resource)
-    return openConnectDialog();
+  let localPath = false;
 
   // Check if the resource is a path, not a URL
   if (resource.indexOf("://") == -1) {
     let info;
-    localPath = path.resolve(resource);
-    host = null;
+    resource = path.resolve(resource);
+    localPath = true;
     try {
-      info = fs.statSync(localPath);
+      info = fs.statSync(resource);
     } catch (e) {
-      console.log("Could not stat path: " + localPath);
+      console.log("Could not stat path: " + resource);
       return false;
     }
     if (!info.isDirectory())
-      localPath = path.dirname(localPath);  // TODO: Save filename and open it in notebook
+      resource = path.dirname(resource);  // TODO: Save filename and open it in notebook
   } else {
     // Normalize trailing slash
-    if (host.slice(-1) != "/")
-      host += "/";
+    if (resource.slice(-1) != "/")
+      resource += "/";
   }
+  settings.updateSources(resource);
 
-  // See if any existing window matches the host or path, whichever is requested
-  if (windows.focusWindow(host, localPath)) {
-    closeConnectDialog(resource);
+  // We can't close the connect dialog now, since it may be the parent to an open
+  // dialog that has called this function.  Instead, close it soon.
+  process.nextTick(closeConnectDialog);
+
+  // See if any existing window matches the resource
+  if (windows.focusWindow(resource))
     return true;
-  }
 
-  let window = createWindow(localPath || host);
+  let window = windowWithSettings(resource, { webPreferences: { nodeIntegration: false } });
 
-  function setHost(host, url) {
-    window.host = host;
-    // window.path set earlier, since we want that done ASAP
-    window.loadURL(url);
-    // We have to delay this to here, to avoid a crash.  (Don't know why.)
-    closeConnectDialog(resource);
-  }
-
-  // If the window doesn't have the notebook open, open it.
   if (localPath) {
-    console.log("Opening notebook server in " + localPath);
-    window.path = localPath;
+    console.log("Opening notebook server in " + resource);
     let urlFound = false;
-    let proc = spawn('jupyter', ['lab', '--no-browser'], {'cwd': localPath});
+    let proc = spawn('jupyter', ['lab', '--no-browser'], {'cwd': resource});
     window.server = proc;
-    proc.stdout.on('data', function (data) { console.log("Stdout:", data.toString()); });
-    proc.stderr.on('data', function (data) {
+    proc.stdout.on('data', (data) => console.log("Stdout:", data.toString()) );
+    proc.stderr.on('data', (data) => {
       console.log("Server:", data.toString());
       if (!urlFound) {
-        let url = data.toString().match(/(https?:\/\/localhost:[0-9]*\/)\S*/);
+        let url = data.toString().match(/https?:\/\/localhost:[0-9]*\/\S*/);
         if (url) {
           urlFound = true;
-          setHost(url[1], url[0]);
+          window.loadURL(url[0]);
         }
       }
     });
-    proc.on('close', function (code, signal) {
+    proc.on('close', (code, signal) => {
       console.log("Server process ended.");
       window.server = null;
     });
+    window.on('closed', () => {
+      if (window.server)
+        window.server.kill()
+    });
   } else {
-    setHost(host, host);
+    window.loadURL(resource);
   }
 
-  // Focus the window.
-  window.show();
+  // The JupyterLab page will block closing with a beforeunload handler.  Electron
+  // doesn't handle this well; see https://github.com/electron/electron/issues/2579
+  window.on('close', () => {
+    let buttons = ["Cancel", "Close", ];
+    let message = "Closing the window will discard any unsaved changes.";
+    if (window.server)
+      message = message.slice(0, -1) + " and close the Jupyter server."
+
+    let response = dialog.showMessageBox(window, {
+      "type": "question",
+      "buttons": buttons,
+      "title": "Close Window",
+      "message": "Close Window?",
+      "detail": message,
+      "cancelId": buttons.indexOf("Cancel"),
+      "defaultId": buttons.indexOf("Close")
+    });
+    if (buttons[response] == "Close")
+      window.destroy();
+  });
+
   return true;
 }
 
-function createWindow(source) {
-  let winSettings = settings.getWindowSettings(source);
-  winSettings.webPreferences = {
-    nodeIntegration: source == 'open-dialog' ? true : false
-  };
-
-  // Create the browser window.
-  let window = windows.new(winSettings);
-
-  // and load the index.html of the app.
-  //window.loadURL(`file://${__dirname}/index.html`);
+function windowWithSettings(resource, extraSettings) {
+  let winSettings = Object.assign(settings.getWindowSettings(resource), extraSettings);
+  let window = windows.new(resource, winSettings);
 
   // Keep track of settings
   function saveWindowSettings() {
     let pos = window.getPosition();
     let size = window.getSize();
-    settings.updateWindowSettings(source, {
+    settings.updateWindowSettings(resource, {
       'x': pos[0],
       'y': pos[1],
       'width': size[0],
@@ -263,35 +265,6 @@ function createWindow(source) {
   }
   window.on('resize', saveWindowSettings);
   window.on('move', saveWindowSettings);
-
-  // Emitted when the window is closed.
-  window.on('closed', function() {
-    if (window.server)
-      window.server.kill()
-  });
-
-  if (source != 'open-dialog') {
-    // The JupyterLab page will block closing with a beforeunload handler.  Electron
-    // doesn't handle this well; see https://github.com/electron/electron/issues/2579
-    window.on('close', function() {
-      let buttons = ["Cancel", "Close", ];
-      let message = "Closing the window will discard any unsaved changes.";
-      if (window.server)
-        message = message.slice(0, -1) + " and close the Jupyter server."
-
-      let response = dialog.showMessageBox(window, {
-        "type": "question",
-        "buttons": buttons,
-        "title": "Close Window",
-        "message": "Close Window?",
-        "detail": message,
-        "cancelId": buttons.indexOf("Cancel"),
-        "defaultId": buttons.indexOf("Close")
-      });
-      if (buttons[response] == "Close")
-        window.destroy();
-    });
-  }
 
   return window;
 }
@@ -350,8 +323,7 @@ ${details}`;
   } else {
     callback(false);
     webContents.send("set-host", null, null);
-    window.host = null;
-    window.path = null;
+    window.resource = null;
   }
 });
 
@@ -374,14 +346,14 @@ app.on('ready', function() {
           label: "New Window",
           accelerator: "CmdOrCtrl+N",
           click: function(item, focusedWindow) {
-            openNotebook(null);
+            openConnectDialog();
           }
         },
         {
           label: "Open Directory",
           accelerator: "CmdOrCtrl+O",
           click: function(item, focusedWindow) {
-            openDialog(focusedWindow);
+            openDialog();
           }
         }
       ]
@@ -410,9 +382,13 @@ app.on('ready', function() {
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
-  let host = process.argv[2];
-  if (!openNotebook(host)) {
-    console.log("Error: Could not open notebook", host);
-    app.exit(1);
+  let resource = process.argv[2];
+  if (resource) {
+    if (!openNotebook(resource)) {
+      console.log("Error: Could not open notebook", resource);
+      app.exit(1);
+    }
+  } else {
+    openConnectDialog();
   }
 });
