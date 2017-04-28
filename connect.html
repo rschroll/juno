@@ -80,7 +80,7 @@ BSD license. See the file LICENSE for full details.
     <script>
       'use strict';
       var ipcRenderer = require("electron").ipcRenderer;
-      ipcRenderer.on('set-sources', function (event, sources) {
+      ipcRenderer.on('set-sources', (event, sources) => {
         //connect.open(sources);
         var ul = document.querySelector("#hosts");
         for (var i in sources) {

@@ -152,9 +152,7 @@ function openConnectDialog() {
   window.loadURL(`file://${__dirname}/connect.html`);
 
   let webContents = window.webContents;
-  runOnceLoaded(webContents, function () {
-    webContents.send('set-sources', settings.sources);
-  });
+  runOnceLoaded(webContents, () => webContents.send('set-sources', settings.sources) );
 
   return true;
 }
@@ -271,10 +269,7 @@ function windowWithSettings(resource, extraSettings) {
 
 function openDialog(parent) {
   dialog.showOpenDialog(parent, {"properties": ["openDirectory"]},
-                        function (filenames) {
-                          if (filenames)
-                            openNotebook(filenames[0]);
-                        });
+                        (filenames) => filenames && openNotebook(filenames[0]));
 }
 
 /***** Application event handlers *****/
@@ -327,13 +322,9 @@ ${details}`;
   }
 });
 
-ipcMain.on('open-host', function (event, arg) {
-  openNotebook(arg);
-});
+ipcMain.on('open-host', (event, arg) => openNotebook(arg) );
 
-ipcMain.on('open-dialog', function (event) {
-  openDialog(BrowserWindow.fromWebContents(event.sender));
-});
+ipcMain.on('open-dialog', (event) => openDialog(BrowserWindow.fromWebContents(event.sender)) );
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
