@@ -322,8 +322,8 @@ ${details}`;
     settings.updateCertificate(host, certText);
   } else {
     callback(false);
-    webContents.send("set-host", null, null);
-    window.resource = null;
+    openConnectDialog();
+    window.destroy();
   }
 });
 
