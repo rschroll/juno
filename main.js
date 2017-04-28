@@ -18,6 +18,7 @@ const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
 
+/***** Settings *****/
 let settings = {
   sources: [],
   windows: {},
@@ -80,6 +81,7 @@ let settings = {
 };
 settings.load();
 
+/***** Windows *****/
 // Keep a global reference of the window objects, if you don't, the windows will
 // be closed automatically when the JavaScript object is garbage collected.
 let windows = {
@@ -133,64 +135,7 @@ let windows = {
   },
 };
 
-// Quit when all windows are closed.
-app.on('window-all-closed', function() {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform != 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
-  let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
-  let certText = certificate.data.toString();
-  if (settings.certificates[host] == certText) {
-    event.preventDefault();
-    callback(true);
-    return;
-  }
-
-  console.log(url);
-  let buttons = ["Continue", "Abort"];
-  let window = BrowserWindow.fromWebContents(webContents);
-  let details =  + (error == "net::ERR_CERT_AUTHORITY_INVALID") ?
-    "If you were expecting a self-signed certificate, this is probably a false alarm." :
-    "This may be a sign of a man-in-the-middle attack.";
-  let message = `Juno encountered a certificate error when connecting to ${host}, for a certificate claiming to be issued by ${certificate.issuerName}.  The error was
-
-${error}
-
-${details}`;
-
-  let response = dialog.showMessageBox(window, {
-    "type": "warning",
-    "buttons": buttons,
-    "title": "Certificate Error",
-    "message": "Certificate Error",
-    "detail": message,
-    "cancelId": buttons.indexOf("Abort")
-  });
-  if (buttons[response] == "Continue") {
-    event.preventDefault();
-    callback(true);
-    settings.updateCertificate(host, certText);
-  } else {
-    callback(false);
-    webContents.send("set-host", null, null);
-    window.host = null;
-    window.path = null;
-  }
-});
-
-ipcMain.on('open-host', function (event, arg) {
-  openNotebook(arg);
-});
-
-ipcMain.on('open-dialog', function (event) {
-  openDialog(BrowserWindow.fromWebContents(event.sender));
-});
-
+/***** Functions *****/
 function runOnceLoaded(webContents, func) {
   if (webContents.isLoading())
     webContents.on('did-finish-load', func);
@@ -358,6 +303,65 @@ function openDialog(parent) {
                             openNotebook(filenames[0]);
                         });
 }
+
+/***** Application event handlers *****/
+// Quit when all windows are closed.
+app.on('window-all-closed', function() {
+  // On OS X it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if (process.platform != 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
+  let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
+  let certText = certificate.data.toString();
+  if (settings.certificates[host] == certText) {
+    event.preventDefault();
+    callback(true);
+    return;
+  }
+
+  console.log(url);
+  let buttons = ["Continue", "Abort"];
+  let window = BrowserWindow.fromWebContents(webContents);
+  let details =  + (error == "net::ERR_CERT_AUTHORITY_INVALID") ?
+    "If you were expecting a self-signed certificate, this is probably a false alarm." :
+    "This may be a sign of a man-in-the-middle attack.";
+  let message = `Juno encountered a certificate error when connecting to ${host}, for a certificate claiming to be issued by ${certificate.issuerName}.  The error was
+
+${error}
+
+${details}`;
+
+  let response = dialog.showMessageBox(window, {
+    "type": "warning",
+    "buttons": buttons,
+    "title": "Certificate Error",
+    "message": "Certificate Error",
+    "detail": message,
+    "cancelId": buttons.indexOf("Abort")
+  });
+  if (buttons[response] == "Continue") {
+    event.preventDefault();
+    callback(true);
+    settings.updateCertificate(host, certText);
+  } else {
+    callback(false);
+    webContents.send("set-host", null, null);
+    window.host = null;
+    window.path = null;
+  }
+});
+
+ipcMain.on('open-host', function (event, arg) {
+  openNotebook(arg);
+});
+
+ipcMain.on('open-dialog', function (event) {
+  openDialog(BrowserWindow.fromWebContents(event.sender));
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
