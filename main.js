@@ -18,37 +18,67 @@ const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
 
-let configFile = null;
-try {
-  configFile = path.join(app.getPath('userData'), 'config.json')
-} catch (err) {
-  console.log(err);
-}
+let settings = {
+  sources: [],
+  windows: {},
+  certificates: {},
 
-function loadSettings() {
-  let settings = {};
-  if (configFile) {
+  configFile: path.join(app.getPath('userData'), 'config.json'),
+
+  load() {
+    let readSettings = {};
     try {
-      settings = JSON.parse(fs.readFileSync(configFile));
+      readSettings = JSON.parse(fs.readFileSync(this.configFile));
     } catch (err) {
-      // pass
+      return;
     }
-  }
-  return {
-    sources: settings.sources || [],
-    windows: settings.windows || {},
-    certificates: settings.certificates || {},
-  }
-}
-global.settings = loadSettings();
+    this.sources = readSettings.sources || this.sources;
+    this.windows = readSettings.windows || this.windows;
+    this.certificates = readSettings.certificates || this.certificates;
+  },
 
-function saveSettings() {
-  if (configFile)
-    fs.writeFile(configFile, JSON.stringify(global.settings, null, '  '), function (err) {
-      if (err)
-        console.log(err);
-    });
-}
+  save() {
+    let writeSettings = {
+      sources: this.sources,
+      windows: this.windows,
+      certificates: this.certificates
+    };
+    fs.writeFile(this.configFile, JSON.stringify(writeSettings, null, '  '),
+                 (err) => {
+                   if (err)
+                     console.log(err);
+                 });
+  },
+
+  updateSources(source) {
+    let index = this.sources.indexOf(source);
+    if (index != -1)
+      this.sources.splice(index, 1);
+    this.sources.splice(0, 0, source);
+    this.save();
+  },
+
+  updateCertificate(host, cert) {
+    this.certificates[host] = cert;
+    this.save();
+  },
+
+  getWindowSettings(source) {
+    let saved = this.windows[source] || {};
+    return {
+      width: saved.width || 800,
+      height: saved.height || 600,
+      x: saved.x,  // Null okay here, as that will cause desired centering
+      y: saved.y,
+    }
+  },
+
+  updateWindowSettings(source, newSettings) {
+    this.windows[source] = newSettings;
+    this.save();
+  },
+};
+settings.load();
 
 // Report crashes to our server.
 //electron.crashReporter.start();
@@ -69,7 +99,7 @@ app.on('window-all-closed', function() {
 app.on('certificate-error', function(event, webContents, url, error, certificate, callback) {
   let host = url.match(/[a-z]*:\/\/([^\/]*)/)[1];
   let certText = certificate.data.toString();
-  if (global.settings.certificates[host] == certText) {
+  if (settings.certificates[host] == certText) {
     event.preventDefault();
     callback(true);
     return;
@@ -98,8 +128,7 @@ ${details}`;
   if (buttons[response] == "Continue") {
     event.preventDefault();
     callback(true);
-    global.settings.certificates[host] = certText;
-    saveSettings();
+    settings.updateCertificate(host, certText);
   } else {
     callback(false);
     webContents.send("set-host", null, null);
@@ -138,18 +167,14 @@ function openConnectDialog() {
 
   let webContents = window.webContents;
   runOnceLoaded(webContents, function () {
-    webContents.send('set-sources', global.settings.sources);
+    webContents.send('set-sources', settings.sources);
   });
 
   return true;
 }
 
 function closeConnectDialog(source) {
-  let index = global.settings.sources.indexOf(source);
-  if (index != -1)
-    global.settings.sources.splice(index, 1);
-  global.settings.sources.splice(0, 0, source);
-  saveSettings();
+  settings.updateSources(source);
 
   for (let i in windows) {
     let window = windows[i];
@@ -239,27 +264,13 @@ function openNotebook(resource) {
 }
 
 function createWindow(source) {
-  let settings = {
-    width: 800,
-    height: 600,
-    x: null,
-    y: null,
-    webPreferences: {nodeIntegration: source == 'open-dialog' ? true : false}
-  }
-  let saved = global.settings.windows[source];
-  if (saved) {
-    if (saved.width)
-      settings.width = saved.width;
-    if (saved.height)
-      settings.height = saved.height;
-    if (saved.x !== null)
-      settings.x = saved.x;
-    if (saved.y !== null)
-      settings.y = saved.y;
-  }
+  let winSettings = settings.getWindowSettings(source);
+  winSettings.webPreferences = {
+    nodeIntegration: source == 'open-dialog' ? true : false
+  };
 
   // Create the browser window.
-  let window = new BrowserWindow(settings);
+  let window = new BrowserWindow(winSettings);
   window.host = null;
   window.path = null;
   window.server = null;
@@ -271,13 +282,12 @@ function createWindow(source) {
   function saveWindowSettings() {
     let pos = window.getPosition();
     let size = window.getSize();
-    global.settings.windows[source] = {
+    settings.updateWindowSettings(source, {
       'x': pos[0],
       'y': pos[1],
       'width': size[0],
       'height': size[1]
-    };
-    saveSettings();
+    });
   }
   window.on('resize', saveWindowSettings);
   window.on('move', saveWindowSettings);
