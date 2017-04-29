@@ -136,13 +136,6 @@ let windows = {
 };
 
 /***** Functions *****/
-function runOnceLoaded(webContents, func) {
-  if (webContents.isLoading())
-    webContents.on('did-finish-load', func);
-  else
-    func();
-}
-
 function openConnectDialog() {
   if (windows.focusWindow('open-dialog'))
     return true;
@@ -152,7 +145,7 @@ function openConnectDialog() {
   window.loadURL(`file://${__dirname}/connect.html`);
 
   let webContents = window.webContents;
-  runOnceLoaded(webContents, () => webContents.send('set-sources', settings.sources) );
+  webContents.once('did-finish-load', () => webContents.send('set-sources', settings.sources) );
 
   return true;
 }
