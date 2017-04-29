@@ -206,6 +206,7 @@ function openNotebook(resource) {
     proc.on('close', (code, signal) => {
       console.log("Server process ended.");
       window.server = null;
+      openServerPane(window, "Server Died");
     });
     window.on('closed', () => {
       if (window.server)
@@ -263,6 +264,23 @@ function windowWithSettings(resource, extraSettings) {
 function openDialog(parent) {
   dialog.showOpenDialog(parent, {"properties": ["openDirectory"]},
                         (filenames) => filenames && openNotebook(filenames[0]));
+}
+
+function openServerPane(window, title) {
+  let serverPane = new BrowserWindow({
+    parent: window,
+    modal: true,
+    width: 800,
+    height: 600,
+    show: false,
+  });
+  serverPane.setMenu(null);
+  serverPane.loadURL(`file://${__dirname}/server.html`);
+  serverPane.once('ready-to-show', () => {
+    serverPane.show();
+    if (title)
+      serverPane.webContents.send('set-title', title);
+  });
 }
 
 /***** Application event handlers *****/
@@ -335,6 +353,11 @@ app.on('ready', () => {
           label: "Open Directory",
           accelerator: "CmdOrCtrl+O",
           click: (item, focusedWindow) => openDialog()
+        },
+        {
+          label: "Server Settings",
+          accelerator: "CmdOrCtrl+E",
+          click: (item, focusedWindow) => openServerPane(focusedWindow)
         }
       ]
     },

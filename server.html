@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!--
+Copyright 2015-2017 Robert Schroll
+
+This file is part of Juno and is distributed under the terms of the
+BSD license. See the file LICENSE for full details.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Server Settings</title>
+    <style>
+      body {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background-color: #333;
+        color: #eee;
+        font: menu;
+        -webkit-user-select: none;
+        cursor: default;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+      }
+
+      h1 {
+        font-size: 1.44em;
+        margin-top: 0;
+        text-align: center;
+      }
+
+      #command-container {
+        display: flex;
+      }
+      #command {
+        margin-left: 0.5em;
+        flex-grow: 1;
+      }
+      #command>input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #buttons {
+        display: flex;
+        margin-top: 0.5em;
+        margin-bottom: 1em;
+      }
+      #buttons>span:not(:last-child) {
+        margin-right: 0.5em;
+      }
+      #default {
+        flex-grow: 1; /* Push the following buttons to the right */
+      }
+      #terminal {
+        width: 81ch;  /* 80 chars + scrollbar */
+        height: 27.6em;
+        line-height: 1.15;
+        padding: 0.25em 0.5em;
+        font-family: monospace;
+        font-weight: bold;
+        background: #000;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        overflow-y: scroll;
+        -webkit-user-select: text;
+      }
+
+      ::-webkit-scrollbar {
+        width: 1ch;
+      }
+      ::-webkit-scrollbar-thumb {
+        border-radius: 0.5ch;
+        background: #555;
+      }
+      :hover::-webkit-scrollbar-thumb {
+        background: #aaa;
+      }
+      ::-webkit-scrollbar-track,
+      ::-webkit-scrollbar-button,
+      ::-webkit-scrollbar-track-piece,
+      ::-webkit-scrollbar-corner,
+      ::-webkit-resizer { display: none; }
+    </style>
+    <script>
+      'use strict';
+      var ipcRenderer = require("electron").ipcRenderer;
+      ipcRenderer.on('set-title', (event, title) => {
+        document.querySelector("h1").innerText = title;
+      });
+    </script>
+  </head>
+  <body>
+    <div class="body">
+      <h1>Server Settings</h1>
+      <div id="command-container">
+        <span>JupyterLab command:</span>
+        <span id="command">
+          <input type="text"></input>
+          <span id="buttons">
+            <span id="default"><button>Load default</button></span>
+            <span id="save"><button>Save</button></span>
+            <span id="restart"><button>Restart</button></span>
+          </span>
+        </span>
+      </div>
+      <div id="terminal"></div>
+    </div>
+  </body>
+</html>
