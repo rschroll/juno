@@ -14,7 +14,7 @@ const BrowserWindow = electron.BrowserWindow;  // Module to create native browse
 const Menu = electron.Menu;
 const ipcMain = electron.ipcMain;
 const dialog = electron.dialog;
-const spawn = require('child_process').spawn;
+const childProcess = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const process = require('process');
@@ -257,7 +257,7 @@ function startServer(window) {
   console.log("Opening notebook server in " + window.resource);
   let urlFound = false;
   let cmd = parseSpawnArgs(settings.getWindowSettings(window.resource)['cmd']);
-  let proc = spawn(cmd[0], cmd.slice(1), {'cwd': window.resource});
+  let proc = childProcess.spawn(cmd[0], cmd.slice(1), {'cwd': window.resource});
   window.server = proc;
   window.buffer = [];
 
@@ -324,6 +324,15 @@ function openServerPane(window, title) {
       serverPane.webContents.send('output-line', window.buffer[i]);
   });
   serverPane.on('closed', () => { window.serverPane = null; });
+}
+
+/* A quick hack to expose this function to the browser environment.
+   TODO: Move this into a module, so it can be remote.required from the browser. */
+global.condaJupyter = (env) => {
+  let cmd = childProcess.execSync(`source activate ${env} && which jupyter`,
+                                  {shell: '/bin/bash', timeout: 2000}).slice(0, -1).toString();
+  let args = JUPYTERLAB_CMD.split(' ').splice(1).join(' ');
+  return cmd + ' ' + args;
 }
 
 /***** Application event handlers *****/

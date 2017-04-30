@@ -35,6 +35,11 @@ BSD license. See the file LICENSE for full details.
       #command-container {
         display: flex;
       }
+      #command-header {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
       #command {
         margin-left: 0.5em;
         flex-grow: 1;
@@ -43,12 +48,12 @@ BSD license. See the file LICENSE for full details.
         width: 100%;
         box-sizing: border-box;
       }
-      #buttons {
+      .buttons {
         display: flex;
         margin-top: 0.5em;
-        margin-bottom: 1em;
+        margin-bottom: 0.5em;
       }
-      #buttons>span:not(:last-child) {
+      .buttons>:not(:last-child) {
         margin-right: 0.5em;
       }
       .sep {
@@ -57,10 +62,44 @@ BSD license. See the file LICENSE for full details.
       button {
         width: 10em;
       }
+
+      #search {
+        margin-bottom: 0.5em;
+      }
+      #search>a {
+        position: relative;
+        z-index: 2;
+        border: 1px solid #555;
+        padding: 0.25em 0.5em;
+        background: #555;
+        color: #eee;
+        text-decoration: none;
+      }
+      #search>a:hover, #search.popup>a {
+        border: 1px solid #999;
+        background: #666;
+      }
+      #search.popup>a {
+        border-bottom: 1px solid #666;
+        padding-bottom: calc(0.25em + 1px);
+      }
+      #search-popup {
+        display: none;
+        position: absolute;
+        margin-top: 0.25em;
+        border: 1px solid #999;
+        padding: 0 0.5em;
+        background: #666;
+      }
+      #search.popup #search-popup {
+        display: block;
+      }
+
       #terminal {
         width: 81ch;  /* 80 chars + scrollbar */
         height: 27.6em;
         line-height: 1.15;
+        margin-top: 0.5em;
         padding: 0.25em 0.5em;
         font-family: monospace;
         font-weight: bold;
@@ -90,6 +129,7 @@ BSD license. See the file LICENSE for full details.
     <script>
       'use strict';
       var ipcRenderer = require("electron").ipcRenderer;
+      var remote = require("electron").remote;
       var jupyterCmd = null;
       var jupyterCmdDefault = null;
 
@@ -111,14 +151,18 @@ BSD license. See the file LICENSE for full details.
           }
         }
 
+        function setCommand(value) {
+          input.value = value;
+          updateButtons();
+        }
+
         ipcRenderer.on('set-title', (event, title) => {
           $("h1").innerText = title;
         });
         ipcRenderer.on('set-cmd', (event, cmd, defaultCmd) => {
           jupyterCmd = cmd;
           jupyterCmdDefault = defaultCmd;
-          input.value = cmd;
-          updateButtons();
+          setCommand(cmd);
         });
         ipcRenderer.on('output-line', (event, line) => {
           let atBottom = terminal.scrollTop + terminal.offsetHeight >= terminal.scrollHeight;
@@ -127,14 +171,8 @@ BSD license. See the file LICENSE for full details.
             terminal.scrollTop = terminal.scrollHeight;
         });
 
-        defaultButton.addEventListener("click", () => {
-          input.value = jupyterCmdDefault;
-          updateButtons();
-        });
-        resetButton.addEventListener("click", () => {
-          input.value = jupyterCmd;
-          updateButtons();
-        });
+        defaultButton.addEventListener("click", () => setCommand(jupyterCmdDefault) );
+        resetButton.addEventListener("click", () => setCommand(jupyterCmd) );
         restartButton.addEventListener("click", () => {
           ipcRenderer.send('restart', input.value);
           jupyterCmd = input.value;
@@ -143,6 +181,15 @@ BSD license. See the file LICENSE for full details.
         });
         input.addEventListener("input", updateButtons);
         input.addEventListener("change", updateButtons);
+
+        $("#search>a").addEventListener("click", () => $("#search").classList.toggle("popup") );
+        $("#conda>button").addEventListener("click", () =>
+          setCommand(remote.getGlobal('condaJupyter')($("#conda>input").value)) );
+        $("#file>input").addEventListener("change", () => {
+          let files = $("#file>input").files;
+          if (files.length)
+            setCommand(files[0].path + ' ' + jupyterCmdDefault.split(' ').splice(1).join(' '));
+        });
       });
     </script>
   </head>
@@ -150,15 +197,31 @@ BSD license. See the file LICENSE for full details.
     <div class="body">
       <h1>Server Settings</h1>
       <div id="command-container">
-        <span>JupyterLab command:</span>
-        <span id="command">
+        <div id="command-header">
+          <span>JupyterLab command:</span>
+          <span id="search">
+            <a href="#">Search</a>
+            <div id="search-popup">
+              <div id="conda" class="buttons">
+                <span>Conda environment:</span>
+                <input type="text"></input>
+                <button>Look Up Binary</button>
+              </div>
+              <div id="file" class="buttons">
+                <span>From filesystem:</span>
+                <input type="file" />
+              </div>
+            </div>
+          </span>
+        </div>
+        <div id="command">
           <input type="text"></input>
-          <span id="buttons">
+          <span class="buttons">
             <span id="default" class="sep"><button>Load Default</button></span>
             <span id="reset"><button>Reset</button></span>
             <span id="restart"><button>Restart Server</button></span>
           </span>
-        </span>
+        </div>
       </div>
       <div id="terminal"></div>
     </div>
