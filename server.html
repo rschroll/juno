@@ -90,6 +90,13 @@ BSD license. See the file LICENSE for full details.
       ipcRenderer.on('set-title', (event, title) => {
         document.querySelector("h1").innerText = title;
       });
+      ipcRenderer.on('output-line', (event, line) => {
+        let terminal = document.querySelector("#terminal");
+        let atBottom = terminal.scrollTop + terminal.offsetHeight >= terminal.scrollHeight;
+        terminal.innerText += line;
+        if (atBottom)
+          terminal.scrollTop = terminal.scrollHeight;
+      });
     </script>
   </head>
   <body>

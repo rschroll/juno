@@ -19,6 +19,8 @@ const path = require('path');
 const fs = require('fs');
 const process = require('process');
 
+const BUFFER_LEN = 1000;
+
 /***** Settings *****/
 let settings = {
   sources: [],
@@ -192,11 +194,27 @@ function openNotebook(resource) {
     let urlFound = false;
     let proc = spawn('jupyter', ['lab', '--no-browser'], {'cwd': resource});
     window.server = proc;
-    proc.stdout.on('data', (data) => console.log("Stdout:", data.toString()) );
+    window.buffer = [];
+
+    function appendToBuffer(line) {
+      window.buffer = window.buffer.splice(-BUFFER_LEN + 1);
+      window.buffer.push(line);
+      if (window.serverPane) {
+        window.serverPane.webContents.send('output-line', line);
+      }
+    }
+
+    proc.stdout.on('data', (data) => {
+      data = data.toString();
+      appendToBuffer(data);
+      console.log("Stdout:", data);
+    });
     proc.stderr.on('data', (data) => {
-      console.log("Server:", data.toString());
+      data = data.toString();
+      appendToBuffer(data);
+      console.log("Server:", data);
       if (!urlFound) {
-        let url = data.toString().match(/https?:\/\/localhost:[0-9]*\/\S*/);
+        let url = data.match(/https?:\/\/localhost:[0-9]*\/\S*/);
         if (url) {
           urlFound = true;
           window.loadURL(url[0]);
@@ -267,6 +285,12 @@ function openDialog(parent) {
 }
 
 function openServerPane(window, title) {
+  if (window.serverPane) {
+    window.serverPane.show();
+    window.serverPane.webContents.send('set-title', title);
+    return;
+  }
+
   let serverPane = new BrowserWindow({
     parent: window,
     modal: true,
@@ -274,13 +298,17 @@ function openServerPane(window, title) {
     height: 600,
     show: false,
   });
+  window.serverPane = serverPane;
   serverPane.setMenu(null);
   serverPane.loadURL(`file://${__dirname}/server.html`);
   serverPane.once('ready-to-show', () => {
     serverPane.show();
     if (title)
       serverPane.webContents.send('set-title', title);
+    for (let i in window.buffer)
+      serverPane.webContents.send('output-line', window.buffer[i]);
   });
+  serverPane.on('closed', () => { window.serverPane = null; });
 }
 
 /***** Application event handlers *****/
