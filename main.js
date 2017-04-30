@@ -193,7 +193,10 @@ function openNotebook(resource) {
   if (windows.focusWindow(resource))
     return true;
 
-  let window = windowWithSettings(resource, { webPreferences: { nodeIntegration: false } });
+  let window = windowWithSettings(resource, { webPreferences: {
+    nodeIntegration: false,
+    preload: path.join(__dirname, 'preload.js'),
+  } });
 
   if (localPath) {
     startServer(window);
@@ -207,7 +210,7 @@ function openNotebook(resource) {
 
   // The JupyterLab page will block closing with a beforeunload handler.  Electron
   // doesn't handle this well; see https://github.com/electron/electron/issues/2579
-  window.on('close', () => {
+  window.on('close', (event) => {
     let buttons = ["Cancel", "Close", ];
     let message = "Closing the window will discard any unsaved changes.";
     if (window.server)
@@ -222,8 +225,8 @@ function openNotebook(resource) {
       "cancelId": buttons.indexOf("Cancel"),
       "defaultId": buttons.indexOf("Close")
     });
-    if (buttons[response] == "Close")
-      window.destroy();
+    if (buttons[response] == "Cancel")
+      event.preventDefault();
   });
 
   return true;
