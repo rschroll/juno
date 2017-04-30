@@ -196,46 +196,10 @@ function openNotebook(resource) {
   let window = windowWithSettings(resource, { webPreferences: { nodeIntegration: false } });
 
   if (localPath) {
-    console.log("Opening notebook server in " + resource);
-    let urlFound = false;
-    let cmd = parseSpawnArgs(settings.getWindowSettings(resource)['cmd']);
-    let proc = spawn(cmd[0], cmd.slice(1), {'cwd': resource});
-    window.server = proc;
-    window.buffer = [];
-
-    function appendToBuffer(line) {
-      window.buffer = window.buffer.splice(-BUFFER_LEN + 1);
-      window.buffer.push(line);
-      if (window.serverPane) {
-        window.serverPane.webContents.send('output-line', line);
-      }
-    }
-
-    proc.stdout.on('data', (data) => {
-      data = data.toString();
-      appendToBuffer(data);
-      console.log("Stdout:", data);
-    });
-    proc.stderr.on('data', (data) => {
-      data = data.toString();
-      appendToBuffer(data);
-      console.log("Server:", data);
-      if (!urlFound) {
-        let url = data.match(/https?:\/\/localhost:[0-9]*\/\S*/);
-        if (url) {
-          urlFound = true;
-          window.loadURL(url[0]);
-        }
-      }
-    });
-    proc.on('close', (code, signal) => {
-      console.log("Server process ended.");
-      window.server = null;
-      openServerPane(window, "Server Died");
-    });
+    startServer(window);
     window.on('closed', () => {
       if (window.server)
-        window.server.kill()
+        window.server.kill();
     });
   } else {
     window.loadURL(resource);
@@ -286,6 +250,46 @@ function windowWithSettings(resource, extraSettings) {
   return window;
 }
 
+function startServer(window) {
+  console.log("Opening notebook server in " + window.resource);
+  let urlFound = false;
+  let cmd = parseSpawnArgs(settings.getWindowSettings(window.resource)['cmd']);
+  let proc = spawn(cmd[0], cmd.slice(1), {'cwd': window.resource});
+  window.server = proc;
+  window.buffer = [];
+
+  function appendToBuffer(line) {
+    window.buffer = window.buffer.splice(-BUFFER_LEN + 1);
+    window.buffer.push(line);
+    if (window.serverPane) {
+      window.serverPane.webContents.send('output-line', line);
+    }
+  }
+
+  proc.stdout.on('data', (data) => {
+    data = data.toString();
+    appendToBuffer(data);
+    console.log("Stdout:", data);
+  });
+  proc.stderr.on('data', (data) => {
+    data = data.toString();
+    appendToBuffer(data);
+    console.log("Server:", data);
+    if (!urlFound) {
+      let url = data.match(/https?:\/\/localhost:[0-9]*\/\S*/);
+      if (url) {
+        urlFound = true;
+        window.loadURL(url[0]);
+      }
+    }
+  });
+  proc.on('exit', (code, signal) => {
+    console.log("Server process ended.");
+    window.server = null;
+    openServerPane(window, "Server Died");
+  });
+}
+
 function openDialog(parent) {
   dialog.showOpenDialog(parent, {"properties": ["openDirectory"]},
                         (filenames) => filenames && openNotebook(filenames[0]));
@@ -312,6 +316,7 @@ function openServerPane(window, title) {
     serverPane.show();
     if (title)
       serverPane.webContents.send('set-title', title);
+    serverPane.webContents.send('set-cmd', settings.getWindowSettings(window.resource)['cmd'], JUPYTERLAB_CMD);
     for (let i in window.buffer)
       serverPane.webContents.send('output-line', window.buffer[i]);
   });
@@ -371,6 +376,17 @@ ${details}`;
 ipcMain.on('open-host', (event, arg) => openNotebook(arg) );
 
 ipcMain.on('open-dialog', (event) => openDialog(BrowserWindow.fromWebContents(event.sender)) );
+
+ipcMain.on('restart', (event, cmd) => {
+  let window = event.sender.browserWindowOptions.parent;
+  settings.updateWindowSettings(window.resource, {cmd: cmd});
+  if (window.server) {
+    window.server.removeAllListeners('exit');
+    window.server.kill();
+    window.server = null;
+  }
+  startServer(window);
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
