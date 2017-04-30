@@ -23,5 +23,8 @@
   "homepage": "https://github.com/rschroll/juno#readme",
   "devDependencies": {
     "electron": "1.6.5"
+  },
+  "dependencies": {
+    "parse-spawn-args": "^1.0.2"
   }
 }

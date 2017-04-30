@@ -18,8 +18,10 @@ const spawn = require('child_process').spawn;
 const path = require('path');
 const fs = require('fs');
 const process = require('process');
+const parseSpawnArgs = require('parse-spawn-args').parse;
 
 const BUFFER_LEN = 1000;
+const JUPYTERLAB_CMD = "jupyter lab --no-browser"
 
 /***** Settings *****/
 let settings = {
@@ -74,11 +76,15 @@ let settings = {
       height: saved.height || 600,
       x: saved.x,  // Null okay here, as that will cause desired centering
       y: saved.y,
+      cmd: saved.cmd || JUPYTERLAB_CMD,
     }
   },
 
   updateWindowSettings(source, newSettings) {
-    this.windows[source] = newSettings;
+    if (newSettings['cmd'] == JUPYTERLAB_CMD)
+      // Don't store the default, so we can update the default in a new version
+      newSettings['cmd'] = "";
+    Object.assign(this.windows[source], newSettings);
     this.save();
   },
 };
@@ -192,7 +198,8 @@ function openNotebook(resource) {
   if (localPath) {
     console.log("Opening notebook server in " + resource);
     let urlFound = false;
-    let proc = spawn('jupyter', ['lab', '--no-browser'], {'cwd': resource});
+    let cmd = parseSpawnArgs(settings.getWindowSettings(resource)['cmd']);
+    let proc = spawn(cmd[0], cmd.slice(1), {'cwd': resource});
     window.server = proc;
     window.buffer = [];
 
