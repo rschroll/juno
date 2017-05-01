@@ -286,6 +286,12 @@ function startServer(window) {
       }
     }
   });
+  proc.on('error', (error) => {
+    console.log(`Server process error:\n${error}`);
+    window.server = null;
+    appendToBuffer(`Error spawning server process: ${error.errno}\n  ${error.message}\n`)
+    openServerPane(window, "Server Failed to Start");
+  });
   proc.on('exit', (code, signal) => {
     console.log("Server process ended.");
     window.server = null;
