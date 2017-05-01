@@ -335,10 +335,15 @@ function openServerPane(window, title) {
 /* A quick hack to expose this function to the browser environment.
    TODO: Move this into a module, so it can be remote.required from the browser. */
 global.condaJupyter = (env) => {
-  let cmd = childProcess.execSync(`source activate ${env} && which jupyter`,
-                                  {shell: '/bin/bash', timeout: 2000}).slice(0, -1).toString();
+  let cmd = null;
+  try {
+    cmd = childProcess.execSync(`source activate ${env} && which jupyter`,
+                                {shell: '/bin/bash', timeout: 2000}).slice(0, -1).toString();
+  } catch (error) {
+    return [null, error.message];
+  }
   let args = JUPYTERLAB_CMD.split(' ').splice(1).join(' ');
-  return cmd + ' ' + args;
+  return [cmd + ' ' + args, null];
 }
 
 /***** Application event handlers *****/

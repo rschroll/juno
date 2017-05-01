@@ -183,8 +183,19 @@ BSD license. See the file LICENSE for full details.
         input.addEventListener("change", updateButtons);
 
         $("#search>a").addEventListener("click", () => $("#search").classList.toggle("popup") );
-        $("#conda>button").addEventListener("click", () =>
-          setCommand(remote.getGlobal('condaJupyter')($("#conda>input").value)) );
+        $("#conda>button").addEventListener("click", () => {
+          let retval = remote.getGlobal('condaJupyter')($("#conda>input").value);
+          if (retval[1])
+            remote.dialog.showMessageBox(remote.getCurrentWindow(), {
+              type: "error",
+              buttons: ["OK"],
+              title: "Conda Error",
+              message: "Failed to find conda environment",
+              detail: retval[1],
+            });
+          else
+            setCommand(retval[0]);
+        });
         $("#file>input").addEventListener("change", () => {
           let files = $("#file>input").files;
           if (files.length)
