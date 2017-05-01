@@ -84,6 +84,8 @@ let settings = {
     if (newSettings['cmd'] == JUPYTERLAB_CMD)
       // Don't store the default, so we can update the default in a new version
       newSettings['cmd'] = "";
+    if (!this.windows[source])
+      this.windows[source] = {};
     Object.assign(this.windows[source], newSettings);
     this.save();
   },
