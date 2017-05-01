@@ -199,6 +199,7 @@ function openNotebook(resource) {
   } });
 
   if (localPath) {
+    window.localServer = true;
     startServer(window);
     window.on('closed', () => {
       if (window.server)
@@ -430,7 +431,7 @@ app.on('ready', () => {
         },
         {
           label: "Server Settings",
-          accelerator: "CmdOrCtrl+E",
+          enabled: false,
           click: (item, focusedWindow) => openServerPane(focusedWindow)
         }
       ]
@@ -462,4 +463,9 @@ app.on('ready', () => {
   } else {
     openConnectDialog();
   }
+});
+
+app.on('browser-window-focus', (event, window) => {
+  let menu = Menu.getApplicationMenu();
+  menu.items[0].submenu.items[2].enabled = window.localServer;
 });
