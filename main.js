@@ -204,8 +204,10 @@ function openNotebook(resource) {
     window.localServer = true;
     startServer(window);
     window.on('closed', () => {
-      if (window.server)
+      if (window.server) {
+        window.server.removeAllListeners('exit');
         window.server.kill();
+      }
     });
   } else {
     window.loadURL(resource);
