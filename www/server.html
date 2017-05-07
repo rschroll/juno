@@ -128,8 +128,8 @@ BSD license. See the file LICENSE for full details.
     </style>
     <script>
       'use strict';
-      var ipcRenderer = require("electron").ipcRenderer;
-      var remote = require("electron").remote;
+      var { ipcRenderer, remote } = require("electron");
+      var condaJupyter = remote.require('./src/notebook.js').condaJupyter;
       var jupyterCmd = null;
       var jupyterCmdDefault = null;
 
@@ -184,7 +184,7 @@ BSD license. See the file LICENSE for full details.
 
         $("#search>a").addEventListener("click", () => $("#search").classList.toggle("popup") );
         $("#conda>button").addEventListener("click", () => {
-          let retval = remote.getGlobal('condaJupyter')($("#conda>input").value);
+          let retval = condaJupyter($("#conda>input").value);
           if (retval[1])
             remote.dialog.showMessageBox(remote.getCurrentWindow(), {
               type: "error",
