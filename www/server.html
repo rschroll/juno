@@ -128,10 +128,12 @@ BSD license. See the file LICENSE for full details.
     </style>
     <script>
       'use strict';
-      var { ipcRenderer, remote } = require("electron");
-      var condaJupyter = remote.require('./src/notebook.js').condaJupyter;
-      var jupyterCmd = null;
-      var jupyterCmdDefault = null;
+      const { ipcRenderer, remote } = require("electron");
+      const condaJupyter = remote.require('./src/notebook.js').condaJupyter;
+      const jupyterCmdDefault = remote.require('./src/constants.js').JUPYTERLAB_CMD;
+
+      let jupyterCmd = remote.require('./src/settings.js').getWindowSettings(
+                         remote.getCurrentWindow().getParentWindow().resource)['cmd'];
 
       document.addEventListener("DOMContentLoaded", () => {
         let $ = (s) => document.querySelector(s);
@@ -155,14 +157,10 @@ BSD license. See the file LICENSE for full details.
           input.value = value;
           updateButtons();
         }
+        setCommand(jupyterCmd);
 
         ipcRenderer.on('set-title', (event, title) => {
           $("h1").innerText = title;
-        });
-        ipcRenderer.on('set-cmd', (event, cmd, defaultCmd) => {
-          jupyterCmd = cmd;
-          jupyterCmdDefault = defaultCmd;
-          setCommand(cmd);
         });
         ipcRenderer.on('output-line', (event, line) => {
           let atBottom = terminal.scrollTop + terminal.offsetHeight >= terminal.scrollHeight;

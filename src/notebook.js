@@ -162,7 +162,6 @@ function openServerPane(window, title) {
     serverPane.show();
     if (title)
       serverPane.webContents.send('set-title', title);
-    serverPane.webContents.send('set-cmd', settings.getWindowSettings(window.resource)['cmd'], JUPYTERLAB_CMD);
     for (let i in window.buffer)
       serverPane.webContents.send('output-line', window.buffer[i]);
   });
