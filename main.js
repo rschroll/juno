@@ -52,22 +52,26 @@ app.on('ready', () => {
           label: "Server Settings",
           enabled: false,
           click: (item, focusedWindow) => openServerPane(focusedWindow)
-        }
+        },
+        { type: "separator" },
+        { role: "close" },
+        { role: "quit" },
+      ]
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectall" },
       ]
     },
     {
       label: "Debug",
       submenu: [
-        {
-          label: "Reload",
-          accelerator: "CmdOrCtrl+R",
-          click: (item, focusedWindow) => focusedWindow && focusedWindow.reload()
-        },
-        {
-          label: "Toggle Developer Tools",
-          accelerator: "CmdOrCtrl+Shift+I",
-          click: (item, focusedWindow) => focusedWindow && focusedWindow.webContents.toggleDevTools()
-        }
+        { role: "reload" },
+        { role: "toggledevtools" },
       ]
     }
   ];
